@@ -133,11 +133,6 @@ var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
 			children[i].reverse();
 	},
 
-	smooth: function() {
-		for (var i = 0, l = this._children.length; i < l; i++)
-			this._children[i].smooth();
-	},
-
 	/**
 	 * Specifies whether the compound path is oriented clock-wise.
 	 *

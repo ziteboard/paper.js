@@ -228,15 +228,21 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 		var winding = this._getWinding(point);
 		return !!(this.getWindingRule() === 'evenodd' ? winding & 1 : winding);
 /*#*/ } // !__options.nativeContains
-	}
+	},
 
 	/**
-	 * Smooth bezier curves without changing the amount of segments or their
-	 * points, by only smoothing and adjusting their handle points, for both
-	 * open ended and closed paths.
+	 * Smoothes the curves without changing the amount of segments in the path
+	 * or moving their locations, by only smoothing and adjusting the angle and
+	 * length of their handles.
+	 * This works for open ended as well as closed paths.
 	 *
 	 * @name PathItem#smooth
 	 * @function
+	 *
+	 * @param {Number} [tension=0.4] controls the amount of smoothing as a
+	 * factor by wich to scale each handle.
+	 *
+	 * @see Segment#smooth(tension)
 	 *
 	 * @example {@paperscript}
 	 * // Smoothing a closed shape:
@@ -281,6 +287,11 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 	 * // Smooth the segments of the copy:
 	 * copy.smooth();
 	 */
+	smooth: function(tension) {
+		var children = this._children;
+		for (var i = 0, l = children.length; i < l; i++)
+			children[i].smooth(tension);
+	},
 
 	/**
 	 * {@grouptitle Postscript Style Drawing Commands}

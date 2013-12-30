@@ -437,6 +437,38 @@ var Segment = Base.extend(/** @lends Segment# */{
 	},
 
 	/**
+	 * Smoothes the bezier curves that pass through this segment without moving
+	 * its point, by taking into its distance to the neighbouring segments and
+	 * changing the direction and length of the segment's handles accordingly.
+	 *
+	 * @name PathItem#smooth
+	 * @function
+	 *
+	 * @param {Number} [tension=0.4] controls the amount of smoothing as a
+	 * factor by wich to scale each handle.
+	 *
+	 * @see PathItem#smooth(tension)
+	 */
+	smooth: function(tension) {
+		// Smoothing approach based on:
+		// http://bseth99.github.io/projects/animate/2-bezier-curves.html
+		var prev = this.getPrevious(),
+			next = this.getNext();
+		if (prev && next) {
+			var p0 = prev._point,
+				p1 = this._point,
+				p2 = next._point,
+				l1 = p1.getDistance(p0),
+				l2 = p1.getDistance(p2),
+				vector = p0.subtract(p2),
+				t = tension === undefined ? 0.4 : tension,
+				k = t * l1 / (l1 + l2);
+			this.setHandleIn(vector.multiply(k));
+			this.setHandleOut(vector.multiply(k - t));
+		}
+	},
+
+	/**
 	 * Returns the reversed the segment, without modifying the segment itself.
 	 * @return {Segment} the reversed segment
 	 */
