@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -20,7 +20,8 @@
  */
 var PlacedSymbol = Item.extend(/** @lends PlacedSymbol# */{
 	_class: 'PlacedSymbol',
-	_transformContent: false,
+	_applyMatrix: false,
+	_canApplyMatrix: false,
 	// PlacedSymbol uses strokeBounds for bounds
 	_boundsGetter: { getBounds: 'getStrokeBounds' },
 	_boundsSelected: true,
@@ -99,10 +100,9 @@ var PlacedSymbol = Item.extend(/** @lends PlacedSymbol# */{
 	},
 
 	clone: function(insert) {
-		return this._clone(new PlacedSymbol({
-			symbol: this.symbol,
-			insert: false
-		}), insert);
+		var copy = new PlacedSymbol(Item.NO_INSERT);
+		copy.setSymbol(this._symbol);
+		return this._clone(copy, insert);
 	},
 
 	isEmpty: function() {

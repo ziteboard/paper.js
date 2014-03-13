@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -100,8 +100,15 @@ var Matrix = Base.extend(/** @lends Matrix# */{
 	},
 
 	_changed: function() {
-		if (this._owner)
-			this._owner._changed(/*#=*/ Change.GEOMETRY);
+		var owner = this._owner;
+		if (owner) {
+			// If owner has #applyMatrix set, directly bake it in now.
+			if (owner._applyMatrix) {
+				owner.transform(null, true);
+			} else {
+				owner._changed(/*#=*/ Change.GEOMETRY);
+			}
+		}
 	},
 
 	/**
@@ -137,14 +144,29 @@ var Matrix = Base.extend(/** @lends Matrix# */{
 	},
 
 	/**
-	 * "Resets" the matrix by setting its values to the ones of the identity
+	 * Resets the matrix by setting its values to the ones of the identity
 	 * matrix that results in no transformation.
 	 */
-	reset: function() {
+	reset: function(_dontNotify) {
 		this._a = this._d = 1;
 		this._c = this._b = this._tx = this._ty = 0;
-		this._changed();
+		if (!_dontNotify)
+			this._changed();
 		return this;
+	},
+
+	/**
+	 * Applies the matrix to the item that it belongs to, if possible.
+	 * @return {Boolean} {@true if the matrix was applied}
+	 */
+	apply: function() {
+		var owner = this._owner;
+		if (owner) {
+			owner.transform(null, true);
+			// If the matrix was successfully applied, it will be reset now.
+			return this.isIdentity();
+		}
+		return false;
 	},
 
 	/**
@@ -197,7 +219,7 @@ var Matrix = Base.extend(/** @lends Matrix# */{
 		// Do not modify scale, center, since that would arguments of which
 		// we're reading from!
 		var scale = Point.read(arguments),
-			center = Point.read(arguments, 0, 0, { readNull: true });
+			center = Point.read(arguments, 0, { readNull: true });
 		if (center)
 			this.translate(center);
 		this._a *= scale.x;
@@ -231,11 +253,11 @@ var Matrix = Base.extend(/** @lends Matrix# */{
 	 * @param {Number} y the y coordinate of the anchor point
 	 * @return {Matrix} this affine transform
 	 */
-	rotate: function(angle, center) {
-		center = Point.read(arguments, 1);
+	rotate: function(angle /*, center */) {
 		angle *= Math.PI / 180;
-		// Concatenate rotation matrix into this one
-		var x = center.x,
+		var center = Point.read(arguments, 1),
+			// Concatenate rotation matrix into this one
+			x = center.x,
 			y = center.y,
 			cos = Math.cos(angle),
 			sin = Math.sin(angle),
@@ -278,7 +300,7 @@ var Matrix = Base.extend(/** @lends Matrix# */{
 		// Do not modify point, center, since that would arguments of which
 		// we're reading from!
 		var shear = Point.read(arguments),
-			center = Point.read(arguments, 0, 0, { readNull: true });
+			center = Point.read(arguments, 0, { readNull: true });
 		if (center)
 			this.translate(center);
 		var a = this._a,
@@ -314,7 +336,7 @@ var Matrix = Base.extend(/** @lends Matrix# */{
 	 */
 	skew: function(/* skew, center */) {
 		var skew = Point.read(arguments),
-			center = Point.read(arguments, 0, 0, { readNull: true }),
+			center = Point.read(arguments, 0, { readNull: true }),
 			toRadians = Math.PI / 180,
 			shear = new Point(Math.tan(skew.x * toRadians),
 				Math.tan(skew.y * toRadians));

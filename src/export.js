@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -15,7 +15,7 @@
 // PaperScope, and create the initial paper object, all in one statement:
 /*#*/ if (__options.environment == 'browser') {
 
-paper = new (PaperScope.inject(new Base(Base.exports, {
+paper = new (PaperScope.inject(Base.exports, {
 	// Mark fields as enumeralbe so PaperScope.inject can pick them up
 	enumerable: true,
 	Base: Base,
@@ -24,7 +24,7 @@ paper = new (PaperScope.inject(new Base(Base.exports, {
 	DomEvent: DomEvent,
 	Http: Http,
 	Key: Key
-})))();
+}))();
 
 // Support AMD (e.g. require.js)
 // Use named module AMD syntax since there are other unnamed calls to define()
@@ -35,7 +35,7 @@ if (typeof define === 'function' && define.amd)
 
 /*#*/ } else if (__options.environment == 'node') {
 
-paper = new (PaperScope.inject(new Base(Base.exports, {
+paper = new (PaperScope.inject(Base.exports, {
 	// Mark fields as enumeralbe so PaperScope.inject can pick them up
 	enumerable: true,
 	Base: Base,
@@ -45,7 +45,7 @@ paper = new (PaperScope.inject(new Base(Base.exports, {
 	XMLSerializer: XMLSerializer,
 	DOMParser: DOMParser,
 	Canvas: Canvas
-})))();
+}))();
 
 // Export the paper scope.
 module.exports = paper;

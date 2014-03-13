@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -41,11 +41,18 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
 	 * @name PaperScope#initialize
 	 * @function
 	 */
+	// DOCS: initialize() parameters
 	initialize: function PaperScope(script) {
 		// script is only used internally, when creating scopes for PaperScript.
 		// Whenever a PaperScope is created, it automatically becomes the active
 		// one.
 		paper = this;
+		// Default configurable settings.
+		this.settings = {
+			applyMatrix: true,
+			handleSize: 4,
+			hitTolerance: 0
+		};
 		this.project = null;
 		this.projects = [];
 		this.tools = [];
@@ -79,6 +86,20 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
 	 */
 	version: '/*#=*/ __options.version',
 
+	// DOCS: PaperScope#settings
+	/**
+	 * Gives access to paper's configurable settings.
+	 *
+	 * <b>settings.applyMatrix:</b>
+	 *
+	 * <b>settings.handleSize:</b> 
+	 *
+	 * <b>settings.hitTolerance:</b>
+	 *
+	 * @name PaperScope#settings
+	 * @type Object
+	 */
+
 	/**
 	 * The currently active project.
 	 * @name PaperScope#project
@@ -102,16 +123,9 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
 
 	/**
 	 * The reference to the active tool.
+	 * @name PaperScope#tool
 	 * @type Tool
-	 * @bean
 	 */
-	getTool: function() {
-		// If no tool exists yet but one is requested, produce it now on the fly
-		// so it can be used in PaperScript.
-		if (!this._tool)
-			this._tool = new Tool();
-		return this._tool;
-	},
 
 	/**
 	 * The list of available tools.
@@ -131,10 +145,9 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
 		return this;
 	},
 
-	evaluate: function(code) {
-		var res = paper.PaperScript.evaluate(code, this);
+	execute: function(code) {
+		paper.PaperScript.execute(code, this);
 		View.updateFocus();
-		return res;
 	},
 
 	/**
@@ -166,10 +179,10 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
 		// Copy over all fields from this scope to the destination.
 		// Do not use Base.each, since we also want to enumerate over
 		// fields on PaperScope.prototype, e.g. all classes
-		for (var key in this) {
-			if (!/^(version|_id)/.test(key))
+		for (var key in this)
+			// Exclude all 'hidden' fields
+			if (!/^_/.test(key) && this[key])
 				scope[key] = this[key];
-		}
 	},
 
 	/**
@@ -228,14 +241,14 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
 			_id: 0,
 
 			/**
-			 * Retrieves a PaperScope object with the given id or associated with
-			 * the passed canvas element.
+			 * Retrieves a PaperScope object with the given id or associated
+			 * with the passed canvas element.
 			 *
 			 * @param id
 			 */
 			get: function(id) {
 				// If a script tag is passed, get the id from it.
-				if (typeof id === 'object')
+				if (id && id.getAttribute)
 					id = id.getAttribute('id');
 				return this._scopes[id] || null;
 			},

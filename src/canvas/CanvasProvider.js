@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -15,19 +15,19 @@
 var CanvasProvider = {
 	canvases: [],
 
-	getCanvas: function(width, height, ratio) {
+	getCanvas: function(width, height, pixelRatio) {
 		var canvas,
 			init = true;
 		if (typeof width === 'object') {
-			ratio = height;
+			pixelRatio = height;
 			height = width.height;
 			width = width.width;
 		}
-		if (!ratio) {
-			ratio = 1;
-		} else if (ratio !== 1) {
-			width *= ratio;
-			height *= ratio;
+		if (!pixelRatio) {
+			pixelRatio = 1;
+		} else if (pixelRatio !== 1) {
+			width *= pixelRatio;
+			height *= pixelRatio;
 		}
 		if (this.canvases.length) {
 			canvas = this.canvases.pop();
@@ -52,8 +52,8 @@ var CanvasProvider = {
 		}
 		// We save on retrieval and restore on release.
 		ctx.save();
-		if (ratio !== 1)
-			ctx.scale(ratio, ratio);
+		if (pixelRatio !== 1)
+			ctx.scale(pixelRatio, pixelRatio);
 		return canvas;
 	},
 

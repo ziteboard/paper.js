@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -81,7 +81,7 @@ new function() {
 		if (!isClip) {
 			// Have the group not pass on all transformations to its children,
 			// as this is how SVG works too.
-			item._transformContent = false;
+			item._applyMatrix = false;
 			item = applyAttributes(item, node, isRoot);
 			// Style on items needs to be handled differently than all other
 			// items: We first apply the style to the item, then use it as the
@@ -116,11 +116,14 @@ new function() {
 	}
 
 	function importPoly(node, type) {
-		var path = new Path(),
-			points = node.points;
-		path.moveTo(points.getItem(0));
-		for (var i = 1, l = points.numberOfItems; i < l; i++)
-			path.lineTo(points.getItem(i));
+		var coords = node.getAttribute('points').match(
+					/[+-]?(?:\d*\.\d+|\d+\.?)(?:[eE][+-]?\d+)?/g),
+			points = [];
+		for (var i = 0, l = coords.length; i < l; i += 2)
+			points.push(new Point(
+					parseFloat(coords[i]),
+					parseFloat(coords[i + 1])));
+		var path = new Path(points);
 		if (type === 'polygon')
 			path.closePath();
 		return path;
@@ -130,11 +133,12 @@ new function() {
 		// Get the path data, and determine whether it is a compound path or a
 		// normal path based on the amount of moveTo commands inside it.
 		var data = node.getAttribute('d'),
-			path = data.match(/m/gi).length > 1
-					? new CompoundPath()
-					: new Path();
-		path.setPathData(data);
-		return path;
+			param = { pathData: data };
+		// If there are multiple moveTo commands or a closePath command followed
+		// by other commands, we have a CompoundPath:
+		return data.match(/m/gi).length > 1 || /z\S+/i.test(data)
+				? new CompoundPath(param)
+				: new Path(param);
 	}
 
 	function importGradient(node, type) {
@@ -534,13 +538,14 @@ new function() {
 		}
 
 		if (isRoot) {
+			// See if it's a string but handle markup separately
 			if (typeof source === 'string' && !/^.*</.test(source)) {
 /*#*/ if (__options.environment == 'browser') {
 				// First see if we're meant to import an element with the given
 				// id.
 				node = document.getElementById(source);
 				// Check if the string does not represent SVG data, in which
-				// case it must be a url of a SVG to be loaded.
+				// case it must be the URL of a SVG to be loaded.
 				if (node) {
 					source = null;
 				} else {

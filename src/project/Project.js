@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -64,7 +64,6 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 		// Change tracking, not in use for now. Activate once required:
 		// this._changes = [];
 		// this._changesById = {};
-		this.options = {};
 	},
 
 	_serialize: function(options, dictionary) {
@@ -183,7 +182,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 				// NOTE: If there is no layer and this project is not the active
 				// one, passing insert: false and calling addChild on the
 				// project will handle it correctly.
-				|| this.addChild(new Layer({ insert: false }))).addChild(child);
+				|| this.addChild(new Layer(Item.NO_INSERT))).addChild(child);
 		} else {
 			child = null;
 		}
@@ -210,15 +209,16 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 		return items;
 	},
 
-	// DOCS: Project#options
 	/**
-	 * <b>options.handleSize:</b> 
+	 * Gives access to the project's configurable options.
 	 *
-	 * <b>options.hitTolerance:</b>
-	 *
-	 * @name Project#options
 	 * @type Object
+	 * @bean
+	 * @deprecated use {@link PaperScope#settings} instead.
 	 */
+	getOptions: function() {
+		return this._scope.settings;
+	},
 
 	// TODO: Implement setSelectedItems?
 	_updateSelection: function(item) {
@@ -290,11 +290,11 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 	 * information about what exactly was hit or {@code null} if nothing was
 	 * hit
 	 */
-	hitTest: function(point, options) {
+	hitTest: function(/* point, options */) {
 		// We don't need to do this here, but it speeds up things since we won't
 		// repeatetly convert in Item#hitTest() then.
-		point = Point.read(arguments);
-		options = HitResult.getOptions(Base.read(arguments));
+		var point = Point.read(arguments),
+			options = HitResult.getOptions(Base.read(arguments));
 		// Loop backwards, so layers that get drawn last are tested first
 		for (var i = this.layers.length - 1; i >= 0; i--) {
 			var res = this.layers[i].hitTest(point, options);
@@ -335,12 +335,15 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 	 * a JSON data string.
 	 *
 	 * The options object offers control over some aspects of the SVG export:
+	 * <b>options.asString:</b> {@code Boolean} – wether the JSON is returned as
+	 * a {@code Object} or a {@code String}.
 	 * <b>options.precision:</b> {@code Number} – the amount of fractional
 	 * digits in numbers used in JSON data.
 	 *
 	 * @name Project#exportJSON
 	 * @function
-	 * @param {Object} [options={ precision: 5 }] the serialization options 
+	 * @param {Object} [options={ asString: true, precision: 5 }] the
+	 * serialization options
 	 * @return {String} the exported JSON data
 	 */
 
@@ -364,8 +367,8 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 	 * all contained in one top level SVG group node.
 	 *
 	 * The options object offers control over some aspects of the SVG export:
-	 * <b>options.asString:</b> {@code Boolean} – wether a SVG node or a String
-	 * is to be returned.
+	 * <b>options.asString:</b> {@code Boolean} – wether a SVG node or a
+	 * {@code String} is to be returned.
 	 * <b>options.precision:</b> {@code Number} – the amount of fractional
 	 * digits in numbers used in SVG data.
 	 * <b>options.matchShapes:</b> {@code Boolean} – wether imported path
@@ -379,6 +382,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 	 * @return {SVGSVGElement} the project converted to an SVG node
 	 */
 
+	// DOCS: Document importSVG('file.svg', callback);
 	/**
 	 * Converts the provided SVG content into Paper.js items and adds them to
 	 * the active layer of this project.
@@ -420,7 +424,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 	 * @type Symbol[]
 	 */
 
-	draw: function(ctx, matrix, ratio) {
+	draw: function(ctx, matrix, pixelRatio) {
 		// Increase the _updateVersion before the draw-loop. After that, items
 		// that are visible will have their _updateVersion set to the new value.
 		this._updateVersion++;
@@ -430,7 +434,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 		// values
 		var param = new Base({
 			offset: new Point(0, 0),
-			ratio: ratio,
+			pixelRatio: pixelRatio,
 			// Tell the drawing routine that we want to track nested matrices
 			// in param.transforms, and that we want it to set _globalMatrix
 			// as used below. Item#rasterize() and Raster#getAverageColor() do
@@ -446,7 +450,9 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 			ctx.save();
 			ctx.strokeWidth = 1;
 			for (var id in this._selectedItems) {
-				var item = this._selectedItems[id];
+				var item = this._selectedItems[id],
+					size = this._scope.settings.handleSize;
+					half = size / 2;
 				if (item._updateVersion === this._updateVersion
 						&& (item._drawSelected || item._boundsSelected)) {
 					// Allow definition of selected color on a per item and per
@@ -469,11 +475,9 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 									coords[i], coords[++i]);
 						ctx.closePath();
 						ctx.stroke();
-						for (var i = 0; i < 8; i++) {
-							ctx.beginPath();
-							ctx.rect(coords[i] - 2, coords[++i] - 2, 4, 4);
-							ctx.fill();
-						}
+						for (var i = 0; i < 8; i++)
+							ctx.fillRect(coords[i] - half, coords[++i] - half,
+									size, size);
 					}
 				}
 			}

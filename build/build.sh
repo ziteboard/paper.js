@@ -3,8 +3,8 @@
 # Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
 # http://paperjs.org/
 #
-# Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
-# http://lehni.org/ & http://jonathanpuckey.com/
+# Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+# http://scratchdisk.com/ & http://jonathanpuckey.com/
 #
 # Distributed under the MIT license. See LICENSE file for details.
 #
@@ -31,7 +31,7 @@ then
 fi
 
 ./preprocess.sh $MODE ../src/paper.js "-i '../src/constants.js'" ../dist/paper-full.js
-./preprocess.sh $MODE ../src/paper.js "-o '{ \"paperscript\": false, \"palette\": false }' -i '../src/constants.js'" ../dist/paper-core.js
+./preprocess.sh $MODE ../src/paper.js "-o '{ \"paperScript\": false, \"palette\": false }' -i '../src/constants.js'" ../dist/paper-core.js
 ./preprocess.sh $MODE ../src/paper.js "-o '{ \"environment\": \"node\" }' -i '../src/constants.js'" ../dist/paper-node.js 
 
 # Remove the existing file and copy paper-full.js to paper.js now

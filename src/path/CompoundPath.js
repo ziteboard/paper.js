@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -103,9 +103,9 @@ var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
 
 	_changed: function _changed(flags) {
 		_changed.base.call(this, flags);
-		// Delete cached native Path
+		// Clear cached native Path
 		if (flags & (/*#=*/ ChangeFlag.HIERARCHY | /*#=*/ ChangeFlag.GEOMETRY))
-			delete this._currentPath;
+			this._currentPath = undefined;
 	},
 
 	insertChildren: function insertChildren(index, items, _preserve) {
@@ -182,7 +182,7 @@ var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
 		var children = this._children,
 			curves = [];
 		for (var i = 0, l = children.length; i < l; i++)
-			curves = curves.concat(children[i].getCurves());
+			curves.push.apply(curves, children[i].getCurves());
 		return curves;
 	},
 
@@ -223,20 +223,12 @@ var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
 		return area;
 	},
 
-	getPathData: function(/* precision */) {
+	getPathData: function(precision) {
 		var children = this._children,
 			paths = [];
 		for (var i = 0, l = children.length; i < l; i++)
-			paths.push(children[i].getPathData(arguments[0]));
+			paths.push(children[i].getPathData(precision));
 		return paths.join(' ');
-	},
-
-	_getWinding: function(point) {
-		var children =  this._children,
-			winding = 0;
-		for (var i = 0, l = children.length; i < l; i++)
-			winding += children[i]._getWinding(point);
-		return winding;
 	},
 
 	_getChildHitTestOptions: function(options) {
@@ -280,10 +272,11 @@ var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
 	 * Helper method that returns the current path and checks if a moveTo()
 	 * command is required first.
 	 */
-	function getCurrentPath(that) {
-		if (!that._children.length)
+	function getCurrentPath(that, check) {
+		var children = that._children;
+		if (check && children.length === 0)
 			throw new Error('Use a moveTo() command first');
-		return that._children[that._children.length - 1];
+		return children[children.length - 1];
 	}
 
 	var fields = {
@@ -291,18 +284,23 @@ var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
 		// are considered abstract methods of PathItem and need to be defined in
 		// all implementing classes.
 		moveTo: function(/* point */) {
-			var path = new Path();
-			this.addChild(path);
+			var current = getCurrentPath(this),
+				// Reuse current path if nothing was added yet
+				path = current && current.isEmpty() ? current : new Path();
+			if (path !== current)
+				this.addChild(path);
 			path.moveTo.apply(path, arguments);
 		},
 
 		moveBy: function(/* point */) {
-			this.moveTo(getCurrentPath(this).getLastSegment()._point.add(
-					Point.read(arguments)));
+			var current = getCurrentPath(this, true),
+				last = current && current.getLastSegment(),
+				point = Point.read(arguments);
+			this.moveTo(last ? point.add(last._point) : point);
 		},
 
 		closePath: function() {
-			getCurrentPath(this).closePath();
+			getCurrentPath(this, true).closePath();
 		}
 	};
 
@@ -311,7 +309,7 @@ var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
 			'lineBy', 'cubicCurveBy', 'quadraticCurveBy', 'curveBy', 'arcBy'],
 			function(key) {
 				fields[key] = function() {
-					var path = getCurrentPath(this);
+					var path = getCurrentPath(this, true);
 					path[key].apply(path, arguments);
 				};
 			}

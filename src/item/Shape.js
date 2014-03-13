@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -19,7 +19,8 @@
  */
 var Shape = Item.extend(/** @lends Shape# */{
 	_class: 'Shape',
-	_transformContent: false,
+	_applyMatrix: false,
+	_canApplyMatrix: false,
 	_boundsSelected: true,
 	_serializeFields: {
 		shape: null,
@@ -39,12 +40,11 @@ var Shape = Item.extend(/** @lends Shape# */{
 	},
 
 	clone: function(insert) {
-		return this._clone(new Shape({
-			shape: this._shape,
-			size: this._size,
-			radius: this._radius,
-			insert: false
-		}), insert);
+		var copy = new Shape(Item.NO_INSERT);
+		copy.setShape(this._shape);
+		copy.setSize(this._size);
+		copy.setRadius(this._radius);
+		return this._clone(copy, insert);
 	},
 
 	/**
@@ -179,7 +179,7 @@ var Shape = Item.extend(/** @lends Shape# */{
 			} else {
 				var rx = radius.width,
 					ry = radius.height,
-					kappa = Numerical.KAPPA;
+					kappa = /*#=*/ Numerical.KAPPA;
 				if (shape === 'ellipse') {
 					// Approximate ellipse with four bezier curves and KAPPA. 
 					var	cx = rx * kappa,

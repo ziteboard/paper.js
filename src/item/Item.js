@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -39,13 +39,22 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 			if (name)
 				proto._type = Base.hyphenate(name);
 			return res;
-		}
+		},
+
+		/**
+		 * An object constant that can be passed to Item#initialize() to avoid
+		 * insertion into the DOM.
+		 *
+		 * @private
+		 */
+		NO_INSERT: { insert: false }
 	},
 
 	_class: 'Item',
 	// All items apply their matrix by default.
 	// Exceptions are Raster, PlacedSymbol, Clip and Shape.
-	_transformContent: true,
+	_applyMatrix: true,
+	_canApplyMatrix: true,
 	_boundsSelected: false,
 	_selectChildren: false,
 	// Provide information about fields to be serialized, with their defaults
@@ -61,6 +70,7 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 		guide: false,
 		selected: false,
 		clipMask: false,
+		applyMatrix: null,
 		data: {}
 	},
 
@@ -68,22 +78,35 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 		// Do nothing, but declare it for named constructors.
 	},
 
+	/**
+	 * Private helper for #initialize() that tries setting properties from the
+	 * passed props object, and apply the point translation to the internal 
+	 * matrix.
+	 *
+	 * @param {Object} props the properties to be applied to the item
+	 * @param {Point} point the point by which to transform the internal matrix
+	 * @returns {Boolean} {@true if the properties were successfully be applied,
+	 * or if none were provided}
+	 */
 	_initialize: function(props, point) {
 		// Define this Item's unique id. But allow the creation of internally
 		// used paths with no ids.
-		var internal = props && props.internal === true;
+		var internal = props && props.internal === true,
+			matrix = this._matrix = new Matrix();
+			project = paper.project;
 		if (!internal)
 			this._id = Item._id = (Item._id || 0) + 1;
+		// Inherit the applyMatrix setting from paper.settings.applyMatrix
+		this._applyMatrix = this._canApplyMatrix && paper.settings.applyMatrix;
 		// Handle matrix before everything else, to avoid issues with
 		// #addChild() calling _changed() and accessing _matrix already.
-		var matrix = this._matrix = new Matrix();
 		if (point)
 			matrix.translate(point);
 		matrix._owner = this;
+		this._style = new Style(project._currentStyle, this);
 		// If _project is already set, the item was already moved into the DOM
 		// hierarchy. Used by Layer, where it's added to project.layers instead
 		if (!this._project) {
-			var project = paper.project;
 			// Do not insert into DOM if it's an internal path or
 			// props.insert is false.
 			if (internal || props && props.insert === false) {
@@ -94,8 +117,10 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 				(project.activeLayer || new Layer()).addChild(this);
 			}
 		}
-		this._style = new Style(this._project._currentStyle, this);
-		return props ? this._set(props, { insert: true }) : true;
+		// Filter out Item.NO_INSERT before _set(), for performance reasons
+		return props && props !== Item.NO_INSERT
+				? this._set(props, { insert: true }) // Filter out insert prop.
+				: true;
 	},
 
 	_events: new function() {
@@ -214,10 +239,8 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 			project = this._project;
 		if (flags & /*#=*/ ChangeFlag.GEOMETRY) {
 			// Clear cached bounds and position whenever geometry changes
-			delete this._bounds;
-			delete this._position;
-			delete this._decomposed;
-			delete this._globalMatrix;
+			this._bounds = this._position = this._decomposed =
+					this._globalMatrix = undefined;
 		}
 		if (cacheParent && (flags
 				& (/*#=*/ ChangeFlag.GEOMETRY | /*#=*/ ChangeFlag.STROKE))) {
@@ -762,11 +785,11 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	 * // Move the circle 100 points to the right
 	 * circle.position.x += 100;
 	 */
-	getPosition: function(/* dontLink */) {
+	getPosition: function(_dontLink) {
 		// Cache position value.
-		// Pass true for dontLink in getCenter(), so receive back a normal point
+		// Pass true for _dontLink in getCenter(), so receive back a normal point
 		var position = this._position,
-			ctor = arguments[0] ? Point : LinkedPoint;
+			ctor = _dontLink ? Point : LinkedPoint;
 		// Do not cache LinkedPoints directly, since we would not be able to
 		// use them to calculate the difference in #setPosition, as when it is
 		// modified, it would hold new values already and only then cause the
@@ -784,7 +807,7 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 
 	setPosition: function(/* point */) {
 		// Calculate the distance to the current position, by which to
-		// translate the item. Pass true for dontLink, as we do not need a
+		// translate the item. Pass true for _dontLink, as we do not need a
 		// LinkedPoint to simply calculate this distance.
 		this.translate(Point.read(arguments).subtract(this.getPosition(true)));
 	},
@@ -802,10 +825,10 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	 *
 	 * @example {@paperscript}
 	 */
-	getPivot: function(/* dontLink */) {
+	getPivot: function(_dontLink) {
 		var pivot = this._pivot;
 		if (pivot) {
-			var ctor = arguments[0] ? Point : LinkedPoint;
+			var ctor = _dontLink ? Point : LinkedPoint;
 			pivot = new ctor(pivot.x, pivot.y, this, 'setAnchor');
 		}
 		return pivot;
@@ -814,17 +837,17 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	setPivot: function(/* point */) {
 		this._pivot = Point.read(arguments);
 		// No need for _changed() since the only thing this affects is _position
-		delete this._position;
+		this._position = undefined;
 	},
 
 	_pivot: null,
 
 	// TODO: Keep these around for a bit since it was introduced on the mailing
 	// list, then remove in a while.
-	getRegistration: '#getAnchor',
-	setRegistration: '#setAnchor'
-}, Base.each(['getBounds', 'getStrokeBounds', 'getHandleBounds',
-		'getRoughBounds', 'getInternalBounds', 'getInternalRoughBounds'],
+	getRegistration: '#getPivot',
+	setRegistration: '#setPivot'
+}, Base.each(['bounds', 'strokeBounds', 'handleBounds', 'roughBounds',
+		'internalBounds', 'internalRoughBounds'],
 	function(key) {
 		// Produce getters for bounds properties. These handle caching, matrices
 		// and redirect the call to the private _getBounds, which can be
@@ -836,24 +859,32 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 		// as internalGetter.
 		// NOTE: These need to be versions of other methods, as otherwise the
 		// cache gets messed up.
-		var match = key.match(/^getInternal(.*)$/),
+		var getter = 'get' + Base.capitalize(key),
+			match = key.match(/^internal(.*)$/),
 			internalGetter = match ? 'get' + match[1] : null;
-		this[key] = function(/* matrix */) {
-			var getter = this._boundsGetter,
-				// Allow subclasses to override _boundsGetter if they use
-				// the same calculations for multiple type of bounds.
-				// The default is key:
-				bounds = this._getCachedBounds(!internalGetter
-						&& (typeof getter === 'string'
-							? getter : getter && getter[key])
-						|| key, arguments[0], null, internalGetter);
+		this[getter] = function(_matrix) {
+			var boundsGetter = this._boundsGetter,
+				// Allow subclasses to override _boundsGetter if they use the
+				// same calculations for multiple type of bounds.
+				// The default is getter:
+				name = !internalGetter && (typeof boundsGetter === 'string'
+						? boundsGetter : boundsGetter && boundsGetter[getter])
+						|| getter,
+				bounds = this._getCachedBounds(name, _matrix, null,
+						internalGetter);
 			// If we're returning 'bounds', create a LinkedRectangle that uses
 			// the setBounds() setter to update the Item whenever the bounds are
 			// changed:
-			return key === 'getBounds'
+			return key === 'bounds'
 					? new LinkedRectangle(bounds.x, bounds.y, bounds.width,
 							bounds.height, this, 'setBounds') 
 					: bounds;
+		};
+		// As the function defines a _matrix parameter and has no setter,
+		// Straps.js doesn't produce a bean for it. Explicitely define an
+		// accesor now too:
+		this[key] = {
+			get: this[getter]
 		};
 	},
 /** @lends Item# */{
@@ -891,9 +922,9 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 				: new Rectangle();
 	},
 
-	setBounds: function(rect) {
-		rect = Rectangle.read(arguments);
-		var bounds = this.getBounds(),
+	setBounds: function(/* rect */) {
+		var rect = Rectangle.read(arguments),
+			bounds = this.getBounds(),
 			matrix = new Matrix(),
 			center = rect.getCenter();
 		// Read this from bottom to top:
@@ -991,16 +1022,15 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 				for (var i = 0, list = item._boundsCache.list, l = list.length;
 						i < l; i++) {
 					var child = list[i];
-					delete child._bounds;
+					child._bounds = child._position = undefined;
 					// Delete position as well, since it's depending on bounds.
-					delete child._position;
 					// We need to recursively call _clearBoundsCache, because if
 					// the cache for this child's children is not valid anymore,
 					// that propagates up the DOM tree.
 					if (child !== item && child._boundsCache)
 						child._clearBoundsCache();
 				}
-				delete item._boundsCache;
+				item._boundsCache = undefined;
 			}
 		}
 	}
@@ -1083,7 +1113,7 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 		var current = this.getScaling();
 		if (current != null) {
 			// Clone existing points since we're caching internally.
-			var scaling = Point.read(arguments, 0, 0, { clone: true }),
+			var scaling = Point.read(arguments, 0, { clone: true }),
 				// See #setRotation() for preservation of _decomposed.
 				decomposed = this._decomposed;
 			this.scale(scaling.x / current.x, scaling.y / current.y);
@@ -1106,9 +1136,13 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	setMatrix: function(matrix) {
 		// Use Matrix#initialize to easily copy over values.
 		this._matrix.initialize(matrix);
-		if (this._transformContent)
-			this.applyMatrix(true);
-		this._changed(/*#=*/ Change.GEOMETRY);
+		if (this._applyMatrix) {
+			// Directly apply the internal matrix. This will also call
+			// _changed() for us.
+			this.transform(null, true);
+		} else {
+			this._changed(/*#=*/ Change.GEOMETRY);
+		}
 	},
 
 	/**
@@ -1141,15 +1175,23 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	 * @default true
 	 * @bean
 	 */
-	getTransformContent: function() {
-		return this._transformContent;
+	getApplyMatrix: function() {
+		return this._applyMatrix;
 	},
 
-	setTransformContent: function(transform) {
-		this._transformContent = transform;
-		if (transform)
-			this.applyMatrix();
+	setApplyMatrix: function(transform) {
+		// Tell #transform() to apply the internal matrix if _applyMatrix
+		// can be set to true.
+		if (this._applyMatrix = this._canApplyMatrix && !!transform)
+			this.transform(null, true);
 	},
+
+	/**
+	 * @bean
+	 * @deprecated use {@link #getApplyMatrix()} instead.
+	 */
+	getTransformContent: '#getApplyMatrix',
+	setTransformContent: '#setApplyMatrix',
 
 	/**
 	 * {@grouptitle Project Hierarchy}
@@ -1166,6 +1208,7 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 		if (this._project !== project) {
 			// Uninstall events before switching project, then install them
 			// again.
+			// NOTE: _installEvents handles all children too!
 			if (this._project)
 				this._installEvents(false);
 			this._project = project;
@@ -1438,7 +1481,7 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	 * }
 	 */
 	clone: function(insert) {
-		return this._clone(new this.constructor({ insert: false }), insert);
+		return this._clone(new this.constructor(Item.NO_INSERT), insert);
 	},
 
 	_clone: function(copy, insert) {
@@ -1458,7 +1501,7 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 		// meaning the default value has been overwritten (default is on
 		// prototype).
 		var keys = ['_locked', '_visible', '_blendMode', '_opacity',
-				'_clipMask', '_guide'];
+				'_clipMask', '_guide', '_applyMatrix'];
 		for (var i = 0, l = keys.length; i < l; i++) {
 			var key = keys[i];
 			if (this.hasOwnProperty(key))
@@ -1496,7 +1539,9 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	 * Rasterizes the item into a newly created Raster object. The item itself
 	 * is not removed after rasterization.
 	 *
-	 * @param {Number} [resolution=72] the resolution of the raster in dpi
+	 * @param {Number} [resolution=view.resolution] the resolution of the raster
+	 * in pixels per inch (DPI). If not speceified, the value of
+	 * {@code view.resolution} is used.
 	 * @return {Raster} the newly created raster item
 	 *
 	 * @example {@paperscript}
@@ -1519,13 +1564,14 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	 */
 	rasterize: function(resolution) {
 		var bounds = this.getStrokeBounds(),
-			scale = (resolution || 72) / 72,
-			// floor top-left corner and ceil bottom-right corner, to never
+			view = this._project.view,
+			scale = (resolution || view && view.getResolution() || 72) / 72,
+			// Floor top-left corner and ceil bottom-right corner, to never
 			// blur or cut pixels.
 			topLeft = bounds.getTopLeft().floor(),
 			bottomRight = bounds.getBottomRight().ceil()
 			size = new Size(bottomRight.subtract(topLeft)),
-			canvas = CanvasProvider.getCanvas(size),
+			canvas = CanvasProvider.getCanvas(size.multiply(scale)),
 			ctx = canvas.getContext('2d'),
 			matrix = new Matrix().scale(scale).translate(topLeft.negate());
 		ctx.save();
@@ -1533,11 +1579,11 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 		// See Project#draw() for an explanation of new Base()
 		this.draw(ctx, new Base({ transforms: [matrix] }));
 		ctx.restore();
-		var raster = new Raster({
-			canvas: canvas,
-			insert: false
-		});
-		raster.setPosition(topLeft.add(size.divide(2)));
+		var raster = new Raster(Item.NO_INSERT);
+		raster.setCanvas(canvas);
+		raster.transform(new Matrix().translate(topLeft.add(size.divide(2)))
+				// Take resolution into account and scale back to original size.
+				.scale(1 / scale));
 		raster.insertAbove(this);
 		// NOTE: We don't need to release the canvas since it now belongs to the
 		// Raster!
@@ -1804,12 +1850,15 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	 * data string.
 	 *
 	 * The options object offers control over some aspects of the SVG export:
+	 * <b>options.asString:</b> {@code Boolean} – wether the JSON is returned as
+	 * a {@code Object} or a {@code String}.
 	 * <b>options.precision:</b> {@code Number} – the amount of fractional
 	 * digits in numbers used in JSON data.
 	 *
 	 * @name Item#exportJSON
 	 * @function
-	 * @param {Object} [options={ precision: 5 }] the serialization options 
+	 * @param {Object} [options={ asString: true, precision: 5 }] the
+	 * serialization options
 	 * @return {String} the exported JSON data
 	 */
 
@@ -1836,8 +1885,8 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	 * Exports the item with its content and child items as an SVG DOM.
 	 *
 	 * The options object offers control over some aspects of the SVG export:
-	 * <b>options.asString:</b> {@code Boolean} – wether a SVG node or a String
-	 * is to be returned.
+	 * <b>options.asString:</b> {@code Boolean} – wether a SVG node or a
+	 * {@code String} is to be returned.
 	 * <b>options.precision:</b> {@code Number} – the amount of fractional
 	 * digits in numbers used in SVG data.
 	 * <b>options.matchShapes:</b> {@code Boolean} – wether imported path
@@ -1851,6 +1900,7 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	 * @return {SVGSVGElement} the item converted to an SVG node
 	 */
 
+	// DOCS: Document importSVG('file.svg', callback);
 	/**
 	 * Converts the provided SVG content into Paper.js items and adds them to
 	 * the this item's children list.
@@ -1936,10 +1986,11 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 			// Use the loop also to filter out wrong _type.
 			for (var i = items.length - 1; i >= 0; i--) {
 				var item = items[i];
-				if (_type && item._type !== _type)
+				if (_type && item._type !== _type) {
 					items.splice(i, 1);
-				else
+				} else {
 					item._remove(true);
+				}
 			}
 			Base.splice(children, items, index, 0);
 			for (var i = 0, l = items.length; i < l; i++) {
@@ -1984,7 +2035,7 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	/**
 	 * Inserts this item below the specified item.
 	 *
-	 * @param {Item} item the item above which it should be inserted
+	 * @param {Item} item the item below which it should be inserted
 	 * @return {Item} the inserted item, or {@code null} if inserting was not
 	 * possible.
 	 */
@@ -2011,6 +2062,7 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	 * the list of children and moving it above all other children. You can
 	 * use this function for groups, compound paths and layers.
 	 *
+	 * @function
 	 * @param {Item} item The item to be appended as a child
 	 * @deprecated use {@link #addChild(item)} instead.
 	 */
@@ -2031,8 +2083,9 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	/**
 	 * Moves this item above the specified item.
 	 *
+	 * @function
 	 * @param {Item} item The item above which it should be moved
-	 * @return {Boolean} {@true it was moved}
+	 * @return {Boolean} {@true if it was moved}
 	 * @deprecated use {@link #insertAbove(item)} instead.
 	 */
 	moveAbove: '#insertAbove',
@@ -2040,8 +2093,9 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	/**
 	 * Moves the item below the specified item.
 	 *
+	 * @function
 	 * @param {Item} item the item below which it should be moved
-	 * @return {Boolean} {@true it was moved}
+	 * @return {Boolean} {@true if it was moved}
 	 * @deprecated use {@link #insertBelow(item)} instead.
 	 */
 	moveBelow: '#insertBelow',
@@ -2055,7 +2109,7 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	 */
 	reduce: function() {
 		if (this._children && this._children.length === 1) {
-			var child = this._children[0];
+			var child = this._children[0].reduce();
 			child.insertAbove(this);
 			child.setStyle(this._style);
 			this.remove();
@@ -2113,7 +2167,7 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	* Removes the item from the project. If the item has children, they are also
 	* removed.
 	*
-	* @return {Boolean} {@true the item was removed}
+	* @return {Boolean} {@true if the item was removed}
 	*/
 	remove: function() {
 		return this._remove(true);
@@ -2204,7 +2258,7 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	/**
 	 * Checks whether the item is valid, i.e. it hasn't been removed.
 	 *
-	 * @return {Boolean} {@true the item is valid}
+	 * @return {Boolean} {@true if the item is valid}
 	 */
 	// TODO: isValid / checkValid
 
@@ -2589,14 +2643,14 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	 */
 	rotate: function(angle /*, center */) {
 		return this.transform(new Matrix().rotate(angle,
-				Point.read(arguments, 1, 0, { readNull: true })
+				Point.read(arguments, 1, { readNull: true })
 					|| this.getPosition(true)));
 	}
 }, Base.each(['scale', 'shear', 'skew'], function(name) {
 	this[name] = function() {
 		// See Matrix#scale for explanation of this:
 		var point = Point.read(arguments),
-			center = Point.read(arguments, 0, 0, { readNull: true });
+			center = Point.read(arguments, 0, { readNull: true });
 		return this.transform(new Matrix()[name](point,
 				center || this.getPosition(true)));
 	};
@@ -2717,32 +2771,64 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 	// @param {String[]} flags Array of any of the following: 'objects',
 	//        'children', 'fill-gradients', 'fill-patterns', 'stroke-patterns',
 	//        'lines'. Default: ['objects', 'children']
-	transform: function(matrix /*, applyMatrix */) {
+	transform: function(matrix, _applyMatrix) {
+		// If no matrix is provided, or the matrix is the identity, we might
+		// still have some work to do in case _applyMatrix is true
+		if (matrix && matrix.isIdentity())
+			matrix = null;
+		var _matrix = this._matrix,
+			applyMatrix = (_applyMatrix || this._applyMatrix)
+				// Don't apply _matrix if the result of concatenating with
+				// matrix would be identity.
+				&& (!_matrix.isIdentity() || matrix);
+		// Bail out if there is nothing to do.
+		if (!matrix && !applyMatrix)
+			return this;
+		// Simply preconcatenate the internal matrix with the passed one:
+		if (matrix)
+			_matrix.preConcatenate(matrix);
+		// Call #_transformContent() now, if we need to directly apply the
+		// internal _matrix transformations to the item's content.
+		// Application is not possible on Raster, PointText, PlacedSymbol, since
+		// the matrix is where the actual transformation state is stored.
+		if (applyMatrix = applyMatrix && this._transformContent(_matrix)) {
+			// When the _matrix could be applied, we also need to transform
+			// color styles (only gradients so far) and pivot point:
+			var pivot = this._pivot,
+				style = this._style,
+				// pass true for _dontMerge so we don't recursively transform
+				// styles on groups' children.
+				fillColor = style.getFillColor(true),
+				strokeColor = style.getStrokeColor(true);
+			if (pivot)
+				pivot.transform(_matrix);
+			if (fillColor)
+				fillColor.transform(_matrix);
+			if (strokeColor)
+				strokeColor.transform(_matrix);
+			// Reset the internal matrix to the identity transformation if it
+			// was possible to apply it.
+			_matrix.reset(true);
+		}
 		// Calling _changed will clear _bounds and _position, but depending
-		// on matrix we can calculate and set them again.
+		// on matrix we can calculate and set them again, so preserve them.
 		var bounds = this._bounds,
 			position = this._position;
-		// Simply preconcatenate the internal matrix with the passed one:
-		this._matrix.preConcatenate(matrix);
-		// Call applyMatrix if we need to directly apply the accumulated
-		// transformations to the item's content.
-		if (this._transformContent || arguments[1])
-			this.applyMatrix(true);
 		// We always need to call _changed since we're caching bounds on all
 		// items, including Group.
 		this._changed(/*#=*/ Change.GEOMETRY);
 		// Detect matrices that contain only translations and scaling
 		// and transform the cached _bounds and _position without having to
 		// fully recalculate each time.
-		var decomp = bounds && matrix.decompose();
+		var decomp = bounds && matrix && matrix.decompose();
 		if (decomp && !decomp.shearing && decomp.rotation % 90 === 0) {
 			// Transform the old bound by looping through all the cached bounds
 			// in _bounds and transform each.
 			for (var key in bounds) {
 				var rect = bounds[key];
 				// If these are internal bounds, only transform them if this
-				// item transforming its content.
-				if (this._transformContent || !rect._internal)
+				// item applied its matrix.
+				if (applyMatrix || !rect._internal)
 					matrix._transformBounds(rect, rect);
 			}
 			// If we have cached bounds, update _position again as its 
@@ -2753,7 +2839,7 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 			if (rect)
 				this._position = rect.getCenter(true);
 			this._bounds = bounds;
-		} else if (position) {
+		} else if (matrix && position) {
 			// Transform position as well.
 			this._position = matrix._transformPoint(position, position);
 		}
@@ -2761,46 +2847,13 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 		return this;
 	},
 
-	_applyMatrix: function(matrix, applyMatrix) {
+	_transformContent: function(matrix) {
 		var children = this._children;
-
-		if (children && children.length > 0) {
+		if (children) {
 			for (var i = 0, l = children.length; i < l; i++)
-				children[i].transform(matrix, applyMatrix);
+				children[i].transform(matrix, true);
 			return true;
 		}
-	},
-
-	applyMatrix: function(_dontNotify) {
-		// Call #_applyMatrix() with the internal _matrix and pass true for
-		// applyMatrix. Application is not possible on Raster, PointText,
-		// PlacedSymbol, since the matrix is where the actual location /
-		// transformation state is stored.
-		// Pass on the transformation to the content, and apply it there too,
-		// by passing true for the 2nd hidden parameter.
-		var matrix = this._matrix;
-		if (this._applyMatrix(matrix, true)) {
-			// When the matrix could be applied, we also need to transform
-			// color styles (only gradients so far) and pivot point:
-			var pivot = this._pivot,
-				style = this._style,
-				// pass true for dontMerge so we don't recursively transform
-				// styles on groups' children.
-				fillColor = style.getFillColor(true),
-				strokeColor = style.getStrokeColor(true);
-			if (pivot)
-				pivot.transform(matrix);
-			if (fillColor)
-				fillColor.transform(matrix);
-			if (strokeColor)
-				strokeColor.transform(matrix);
-			// Reset the internal matrix to the identity transformation if it
-			// was possible to apply it.
-			matrix.reset();
-		}
-		if (!_dontNotify)
-			this._changed(/*#=*/ Change.GEOMETRY);
-		return this;
 	},
 
 	/**
@@ -3476,7 +3529,8 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 			// it, instead of the mainCtx.
 			mainCtx = ctx;
 			ctx = CanvasProvider.getContext(
-					bounds.getSize().ceil().add(new Size(1, 1)), param.ratio);
+					bounds.getSize().ceil().add(new Size(1, 1)),
+					param.pixelRatio);
 		}
 		ctx.save();
 		// If drawing directly, handle opacity and native blending now,
@@ -3508,8 +3562,8 @@ var Item = Base.extend(Callback, /** @lends Item# */{
 			// opacity.
 			BlendMode.process(blendMode, ctx, mainCtx, opacity,
 					// Calculate the pixel offset of the temporary canvas to the
-					// main canvas. We also need to factor in the pixel ratio.
-					itemOffset.subtract(prevOffset).multiply(param.ratio));
+					// main canvas. We also need to factor in the pixel-ratio.
+					itemOffset.subtract(prevOffset).multiply(param.pixelRatio));
 			// Return the temporary context, so it can be reused
 			CanvasProvider.release(ctx);
 			// Restore previous offset.

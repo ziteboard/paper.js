@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -150,25 +150,27 @@ var Segment = Base.extend(/** @lends Segment# */{
 	},
 
 	_changed: function(point) {
-		if (!this._path)
+		var path = this._path;
+		if (!path)
 			return;
-		// Delegate changes to affected curves if they exist. Check _curves
-		// first to make sure we're not creating it by calling this.getCurve().
-		var curve = this._path._curves && this.getCurve(),
-			other;
-		if (curve) {
-			curve._changed();
-			// Get the other affected curve, which is the previous one for
-			// _point or _handleIn changing when this segment is _segment1 of
-			// the curve, for all other cases it's the next (e.g. _handleOut
-			// when this segment is _segment2)
-			if (other = (curve[point == this._point
-					|| point == this._handleIn && curve._segment1 == this
-					? 'getPrevious' : 'getNext']())) {
-				other._changed();
-			}
+		// Delegate changes to affected curves if they exist.
+		var curves = path._curves,
+			index = this._index,
+			curveIn, curveOut;
+		if (curves) {
+			// Updated the neighboring affected curves, depending on which point
+			// is changing.
+			// TODO: Consider exposing these curves too, through #curveIn,
+			// and #curveOut, next to #curve?
+			if ((!point || point === this._point || point === this._handleIn)
+					&& (curveIn = curves[index - 1]
+						|| path._closed && curves[curves.length - 1]))
+				curveIn._changed();
+			if ((!point || point === this._point || point === this._handleOut)
+					&& (curveOut = curves[index]))
+				curveOut._changed();
 		}
-		this._path._changed(/*#=*/ Change.GEOMETRY);
+		path._changed(/*#=*/ Change.GEOMETRY);
 	},
 
 	/**
@@ -181,8 +183,8 @@ var Segment = Base.extend(/** @lends Segment# */{
 		return this._point;
 	},
 
-	setPoint: function(point) {
-		point = Point.read(arguments);
+	setPoint: function(/* point */) {
+		var point = Point.read(arguments);
 		// Do not replace the internal object but update it instead, so
 		// references to it are kept alive.
 		this._point.set(point.x, point.y);
@@ -199,8 +201,8 @@ var Segment = Base.extend(/** @lends Segment# */{
 		return this._handleIn;
 	},
 
-	setHandleIn: function(point) {
-		point = Point.read(arguments);
+	setHandleIn: function(/* point */) {
+		var point = Point.read(arguments);
 		// See #setPoint:
 		this._handleIn.set(point.x, point.y);
 		// Update corner accordingly
@@ -218,10 +220,10 @@ var Segment = Base.extend(/** @lends Segment# */{
 		return this._handleOut;
 	},
 
-	setHandleOut: function(point) {
+	setHandleOut: function(/* point */) {
 		// We need to use point to avoid minification issues and prevent method
 		// from turning into a bean (by removal of the point argument).
-		point = Point.read(arguments);
+		var point = Point.read(arguments);
 		// See #setPoint:
 		this._handleOut.set(point.x, point.y);
 		// Update corner accordingly
@@ -279,7 +281,7 @@ var Segment = Base.extend(/** @lends Segment# */{
 		var next = this.getNext(),
 			handle1 = this._handleOut,
 			handle2 = next._handleIn,
-			kappa = Numerical.KAPPA;
+			kappa = /*#=*/ Numerical.KAPPA;
 		if (handle1.isOrthogonal(handle2)) {
 			var from = this._point,
 				to = next._point,
@@ -310,26 +312,24 @@ var Segment = Base.extend(/** @lends Segment# */{
 	 * // Select the third segment point:
 	 * path.segments[2].selected = true;
 	 */
-	isSelected: function(/* point */) {
-		var point = arguments[0], // Hidden, only used in SegmentPoint
-			state = this._selectionState;
-		return !point ? !!(state & /*#=*/ SelectionState.SEGMENT)
-			: point === this._point ? !!(state & /*#=*/ SelectionState.POINT)
-			: point === this._handleIn ? !!(state & /*#=*/ SelectionState.HANDLE_IN)
-			: point === this._handleOut ? !!(state & /*#=*/ SelectionState.HANDLE_OUT)
+	isSelected: function(_point) {
+		var state = this._selectionState;
+		return !_point ? !!(state & /*#=*/ SelectionState.SEGMENT)
+			: _point === this._point ? !!(state & /*#=*/ SelectionState.POINT)
+			: _point === this._handleIn ? !!(state & /*#=*/ SelectionState.HANDLE_IN)
+			: _point === this._handleOut ? !!(state & /*#=*/ SelectionState.HANDLE_OUT)
 			: false;
 	},
 
-	setSelected: function(selected /*, point */) {
-		var point = arguments[1]; // Hidden, only used in SegmentPoint
-			path = this._path,
+	setSelected: function(selected, _point) {
+		var path = this._path,
 			selected = !!selected, // convert to boolean
 			state = this._selectionState,
 			oldState = state,
-			flag = !point ? /*#=*/ SelectionState.SEGMENT
-					: point === this._point ? /*#=*/ SelectionState.POINT
-					: point === this._handleIn ? /*#=*/ SelectionState.HANDLE_IN
-					: point === this._handleOut ? /*#=*/ SelectionState.HANDLE_OUT
+			flag = !_point ? /*#=*/ SelectionState.SEGMENT
+					: _point === this._point ? /*#=*/ SelectionState.POINT
+					: _point === this._handleIn ? /*#=*/ SelectionState.HANDLE_IN
+					: _point === this._handleOut ? /*#=*/ SelectionState.HANDLE_OUT
 					: 0;
 		if (selected) {
 			state |= flag;
@@ -375,7 +375,8 @@ var Segment = Base.extend(/** @lends Segment# */{
 	},
 
 	/**
-	 * The curve that the segment belongs to.
+	 * The curve that the segment belongs to. For the last segment of an open
+	 * path, the previous segment is returned.
 	 *
 	 * @type Curve
 	 * @bean
@@ -478,6 +479,7 @@ var Segment = Base.extend(/** @lends Segment# */{
 
 	/**
 	 * Removes the segment from the path that it belongs to.
+	 * @return {Boolean} {@true if the segment was removed}
 	 */
 	remove: function() {
 		return this._path ? !!this._path.removeSegment(this._index) : false;
@@ -505,6 +507,16 @@ var Segment = Base.extend(/** @lends Segment# */{
 		if (!this._handleOut.isZero())
 			parts.push('handleOut: ' + this._handleOut);
 		return '{ ' + parts.join(', ') + ' }';
+	},
+
+	/**
+	 * Transform the segment by the specified matrix.
+	 *
+	 * @param {Matrix} matrix the matrix to transform the segment by
+	 */
+	transform: function(matrix) {
+		this._transformCoordinates(matrix, new Array(6), true);
+		this._changed();
 	},
 
 	_transformCoordinates: function(matrix, coords, change) {

@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -128,5 +128,35 @@ test('equals()', function() {
 
 	equals(function() {
 		return new Point(0, 0).equals(null);
+	}, false);
+});
+
+test('isColinear()', function() {
+	equals(function() {
+		return new Point(10, 5).isColinear(new Point(20, 10));
+	}, true);
+	equals(function() {
+		return new Point(5, 10).isColinear(new Point(-5, -10));
+	}, true);
+	equals(function() {
+		return new Point(10, 10).isColinear(new Point(20, 10));
+	}, false);
+	equals(function() {
+		return new Point(10, 10).isColinear(new Point(10, -10));
+	}, false);
+});
+
+test('isOrthogonal()', function() {
+	equals(function() {
+		return new Point(10, 5).isOrthogonal(new Point(5, -10));
+	}, true);
+	equals(function() {
+		return new Point(5, 10).isOrthogonal(new Point(-10, 5));
+	}, true);
+	equals(function() {
+		return new Point(10, 10).isOrthogonal(new Point(20, 20));
+	}, false);
+	equals(function() {
+		return new Point(10, 10).isOrthogonal(new Point(10, -20));
 	}, false);
 });

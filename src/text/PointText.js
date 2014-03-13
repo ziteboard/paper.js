@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -59,7 +59,7 @@ var PointText = TextItem.extend(/** @lends PointText# */{
 	},
 
 	clone: function(insert) {
-		return this._clone(new PointText({ insert: false }), insert);
+		return this._clone(new PointText(Item.NO_INSERT), insert);
 	},
 
 	/**
@@ -75,8 +75,8 @@ var PointText = TextItem.extend(/** @lends PointText# */{
 		return new LinkedPoint(point.x, point.y, this, 'setPoint');
 	},
 
-	setPoint: function(point) {
-		point = Point.read(arguments);
+	setPoint: function(/* point */) {
+		var point = Point.read(arguments);
 		this.translate(point.subtract(this._matrix.getTranslation()));
 	},
 

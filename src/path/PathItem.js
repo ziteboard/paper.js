@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -35,8 +35,6 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 	 * @function
 	 *
 	 * @param {PathItem} path the other item to find the intersections with
-	 * @param {Boolean} [sorted=true] controls wether to sort the results by
-	 * offset
 	 * @return {CurveLocation[]} the locations of all intersection between the
 	 * paths
 	 * @example {@paperscript}
@@ -64,45 +62,121 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 	 * 	}
 	 * }
 	 */
-	getIntersections: function(path, sorted) {
+	getIntersections: function(path, _expand) {
+		// NOTE: For self-intersection, path is null. This means you can also
+		// just call path.getIntersections() without an argument to get self
+		// intersections.
+		if (this === path)
+			path = null;
 		// First check the bounds of the two paths. If they don't intersect,
 		// we don't need to iterate through their curves.
-		if (!this.getBounds().touches(path.getBounds()))
+		if (path && !this.getBounds().touches(path.getBounds()))
 			return [];
 		var locations = [],
 			curves1 = this.getCurves(),
-			curves2 = path.getCurves(),
+			curves2 = path ? path.getCurves() : curves1,
 			matrix1 = this._matrix.orNullIfIdentity(),
-			matrix2 = path._matrix.orNullIfIdentity(),
+			matrix2 = path ? path._matrix.orNullIfIdentity() : matrix1,
 			length1 = curves1.length,
-			length2 = curves2.length,
-			values2 = [];
+			length2 = path ? curves2.length : length1,
+			values2 = [],
+			MIN = /*#=*/ Numerical.EPSILON,
+			MAX = 1 - /*#=*/ Numerical.EPSILON;
 		for (var i = 0; i < length2; i++)
 			values2[i] = curves2[i].getValues(matrix2);
 		for (var i = 0; i < length1; i++) {
 			var curve1 = curves1[i],
-				values1 = curve1.getValues(matrix1);
-			for (var j = 0; j < length2; j++)
-				Curve.getIntersections(values1, values2[j], curve1, curves2[j],
-						locations);
+				values1 = path ? curve1.getValues(matrix1) : values2[i];
+			if (!path) {
+				// First check for self-intersections within the same curve
+				var seg1 = curve1.getSegment1(),
+					seg2 = curve1.getSegment2(),
+					h1 = seg1._handleOut,
+					h2 = seg2._handleIn;
+				// Check if extended handles of endpoints of this curve
+				// intersects each other. We cannot have a self intersection
+				// within this curve if they don't intersect due to convex-hull
+				// property.
+				if (new Line(seg1._point.subtract(h1), h1.multiply(2), true)
+						.intersect(new Line(seg2._point.subtract(h2),
+						h2.multiply(2), true), false)) {
+					// Self intersectin is found by dividng the curve in two and
+					// and then applying the normal curve intersection code.
+					var parts = Curve.subdivide(values1);
+					Curve.getIntersections(
+						parts[0], parts[1], curve1, curve1, locations,
+						function(loc) {
+							if (loc._parameter <= MAX) {
+								// Since the curve was split above, we need to
+								// adjust the parameters for both locations.
+								loc._parameter /= 2;
+								loc._parameter2 = 0.5 + loc._parameter2 / 2;
+								return true;
+							}
+						}
+					);
+				}
+			}
+			// Check for intersections with other curves. For self intersection,
+			// we can start at i + 1 instead of 0
+			for (var j = path ? 0 : i + 1; j < length2; j++) {
+				Curve.getIntersections(
+					values1, values2[j], curve1, curves2[j], locations,
+					// Avoid end point intersections on consecutive curves whe
+					// self intersecting.
+					!path && (j === i + 1 || j === length2 - 1 && i === 0)
+						&& function(loc) {
+							var t = loc._parameter;
+							return t >= MIN && t <= MAX;
+						}
+				);
+			}
 		}
-		if (sorted || sorted === undefined) {
-			// Now sort the results into the right sequence.
-			// TODO: Share this code with PathItem.Boolean.js, potentially by
-			// using the new BinHeap class that's in preparation.
-			locations.sort(function(loc1, loc2) {
-				var path1 = loc1.getPath(),
-					path2 = loc2.getPath();
-				return path1 === path2
-						// We can add parameter (0 <= t <= 1) to index (integer)
-						// to compare both at the same time
-						? (loc1.getIndex() + loc1.getParameter())
+		// Now filter the locations and process _expand:
+		var last = locations.length - 1;
+		// Merge intersections very close to the end of a curve to the begining
+		// of the next curve.
+		for (var i = last; i >= 0; i--) {
+			var loc = locations[i],
+				next = loc._curve.getNext(),
+				next2 = loc._curve2.getNext();
+			if (next && loc._parameter >= MAX) {
+				loc._parameter = 0;
+				loc._curve = next;
+			}
+			if (next2 && loc._parameter2 >= MAX) {
+				loc._parameter2 = 0;
+				loc._curve2 = next2;
+			}
+		}
+
+		// Compare helper to filter locations
+		function compare(loc1, loc2) {
+			var path1 = loc1.getPath(),
+				path2 = loc2.getPath();
+			return path1 === path2
+					// We can add parameter (0 <= t <= 1) to index 
+					// (a integer) to compare both at the same time
+					? (loc1.getIndex() + loc1.getParameter())
 							- (loc2.getIndex() + loc2.getParameter())
-						// Sort by path index to group all locations on the same
-						// path in the sequnence that they are encountered
-						// within compound paths.
-						: path1._index - path2._index;
-			});
+					// Sort by path id to group all locations on the same path.
+					: path1._id - path2._id;
+		}
+
+		if (last > 0) {
+			locations.sort(compare);
+			// Filter out duplicate locations
+			for (var i = last; i >= 0; i--) {
+				if (locations[i].equals(locations[i === 0 ? last : i - 1])) {
+					locations.splice(i, 1);
+					last--;
+				}
+			}
+		}
+		if (_expand) {
+			for (var i = last; i >= 0; i--)
+				locations.push(locations[i].getIntersection());
+			locations.sort(compare);
 		}
 		return locations;
 	},
@@ -116,22 +190,22 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 		var parts = data.match(/[mlhvcsqtaz][^mlhvcsqtaz]*/ig),
 			coords,
 			relative = false,
+			previous,
 			control,
-			current = new Point(); // the current position
+			current = new Point(),
+			start = new Point();
 
-		function getCoord(index, coord, isCurrent) {
-			var val = parseFloat(coords[index]);
+		function getCoord(index, coord) {
+			var val = +coords[index];
 			if (relative)
 				val += current[coord];
-			if (isCurrent)
-				current[coord] = val;
 			return val;
 		}
 
-		function getPoint(index, isCurrent) {
+		function getPoint(index) {
 			return new Point(
-				getCoord(index, 'x', isCurrent),
-				getCoord(index + 1, 'y', isCurrent)
+				getCoord(index, 'x'),
+				getCoord(index + 1, 'y')
 			);
 		}
 
@@ -140,25 +214,29 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 
 		for (var i = 0, l = parts.length; i < l; i++) {
 			var part = parts[i],
-				cmd = part[0],
-				lower = cmd.toLowerCase();
+				command = part[0],
+				lower = command.toLowerCase();
 			// Match all coordinate values
 			coords = part.match(/[+-]?(?:\d*\.\d+|\d+\.?)(?:[eE][+-]?\d+)?/g);
 			var length = coords && coords.length;
-			relative = cmd === lower;
+			relative = command === lower;
+			if (previous === 'z' && lower !== 'z')
+				this.moveTo(current = start);
 			switch (lower) {
 			case 'm':
 			case 'l':
 				for (var j = 0; j < length; j += 2)
 					this[j === 0 && lower === 'm' ? 'moveTo' : 'lineTo'](
-							getPoint(j, true));
+							current = getPoint(j));
 				control = current;
+				if(lower === 'm')
+					start = current;
 				break;
 			case 'h':
 			case 'v':
-				var coord = lower == 'h' ? 'x' : 'y';
+				var coord = lower === 'h' ? 'x' : 'y';
 				for (var j = 0; j < length; j++) {
-					getCoord(j, coord, true);
+					current[coord] = getCoord(j, coord);
 					this.lineTo(current);
 				}
 				control = current;
@@ -168,42 +246,51 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 					this.cubicCurveTo(
 							getPoint(j),
 							control = getPoint(j + 2),
-							getPoint(j + 4, true));
+							current = getPoint(j + 4));
 				}
 				break;
 			case 's':
 				// Smooth cubicCurveTo
 				for (var j = 0; j < length; j += 4) {
 					this.cubicCurveTo(
-							// Calculate reflection of previous control points
-							current.multiply(2).subtract(control),
+							/[cs]/.test(previous)
+									? current.multiply(2).subtract(control)
+									: current,
 							control = getPoint(j),
-							getPoint(j + 2, true));
+							current = getPoint(j + 2));
+					previous = lower;
 				}
 				break;
 			case 'q':
 				for (var j = 0; j < length; j += 4) {
 					this.quadraticCurveTo(
 							control = getPoint(j),
-							getPoint(j + 2, true));
+							current = getPoint(j + 2));
 				}
 				break;
 			case 't':
 				// Smooth quadraticCurveTo
 				for (var j = 0; j < length; j += 2) {
 					this.quadraticCurveTo(
-							// Calculate reflection of previous control points
-							control = current.multiply(2).subtract(control),
-							getPoint(j, true));
+							control = (/[qt]/.test(previous)
+									? current.multiply(2).subtract(control)
+									: current),
+							current = getPoint(j));
+					previous = lower;
 				}
 				break;
 			case 'a':
-				// TODO: Implement Arcs!
+				for (var j = 0; j < length; j += 7) {
+					this.arcTo(current = getPoint(j + 5),
+							new Size(+coords[0], +coords[1]),
+							+coords[2], +coords[3], +coords[4]);
+				}
 				break;
 			case 'z':
 				this.closePath();
 				break;
 			}
+			previous = lower;
 		}
 	},
 
@@ -216,7 +303,7 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 	_contains: function(point) {
 		// NOTE: point is reverse transformed by _matrix, so we don't need to 
 		// apply here.
-/*#*/ if (__options.nativeContains) {
+/*#*/ if (__options.nativeContains || !__options.booleanOperations) {
 		// To compare with native canvas approach:
 		var ctx = CanvasProvider.getContext(1, 1);
 		// Abuse clip = true to get a shape for ctx.isPointInPath().
@@ -224,10 +311,10 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 		var res = ctx.isPointInPath(point.x, point.y, this.getWindingRule());
 		CanvasProvider.release(ctx);
 		return res;
-/*#*/ } else { // !__options.nativeContains
-		var winding = this._getWinding(point);
+/*#*/ } else { // !__options.nativeContains && __options.booleanOperations
+		var winding = this._getWinding(point, false, true);
 		return !!(this.getWindingRule() === 'evenodd' ? winding & 1 : winding);
-/*#*/ } // !__options.nativeContains
+/*#*/ } // !__options.nativeContains && __options.booleanOperations
 	},
 
 	/**

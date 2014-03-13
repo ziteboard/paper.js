@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -23,7 +23,7 @@ test('moveTo / lineTo', function() {
 	for (var i = 0; i < lists.length; i++) {
 		var list = lists[i];
 		for (var j = 0; j < list.length; j++) {
-			path[j == 0 ? 'moveTo' : 'lineTo'](list[j]);
+			path[j === 0 ? 'moveTo' : 'lineTo'](list[j]);
 		}
 	}
 

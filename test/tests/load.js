@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -23,7 +23,6 @@
 /*#*/ include('Item_Cloning.js');
 /*#*/ include('Item_Order.js');
 /*#*/ include('Item_Bounds.js');
-/*#*/ include('Item_Contains.js');
 
 /*#*/ include('Layer.js');
 /*#*/ include('Group.js');
@@ -38,6 +37,8 @@
 /*#*/ include('Path_Bounds.js');
 /*#*/ include('Path_Length.js');
 /*#*/ include('CompoundPath.js');
+
+/*#*/ include('PathItem_Contains.js');
 
 /*#*/ include('PlacedSymbol.js');
 

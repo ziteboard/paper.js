@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -113,7 +113,7 @@ var HitResult = Base.extend(/** @lends HitResult# */{
 				// 'compound-path', 'shape','raster', 'placed-symbol', ...
 				type: null,
 				// Tolerance
-				tolerance: paper.project.options.hitTolerance || 2,
+				tolerance: paper.settings.hitTolerance,
 				// Hit the fill of items
 				fill: !options,
 				// Hit the curves of path items, taking into account the stroke

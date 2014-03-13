@@ -2,8 +2,8 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2013, Juerg Lehni & Jonathan Puckey
- * http://lehni.org/ & http://jonathanpuckey.com/
+ * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
  *
@@ -30,12 +30,28 @@ var View = Base.extend(Callback, /** @lends View# */{
 		this._element = element;
 		var size;
 /*#*/ if (__options.environment == 'browser') {
+		// Sub-classes may set _pixelRatio first
+		if (!this._pixelRatio)
+			this._pixelRatio = window.devicePixelRatio || 1;
 		// Generate an id for this view / element if it does not have one
 		this._id = element.getAttribute('id');
 		if (this._id == null)
 			element.setAttribute('id', this._id = 'view-' + View._id++);
 		// Install event handlers
-		DomEvent.add(element, this._viewHandlers);
+		DomEvent.add(element, this._viewEvents);
+		// Borrowed from Hammer.js:
+		var none = 'none';
+		DomElement.setPrefixed(element.style, {
+			userSelect: none,
+			// This makes the element blocking in IE10+
+			// You could experiment with the value, see this issue:
+			// https://github.com/EightMedia/hammer.js/issues/241
+			touchAction: none,
+			touchCallout: none,
+			contentZooming: none,
+			userDrag: none,
+			tapHighlightColor: 'rgba(0,0,0,0)'
+		});
 		// If the element has the resize attribute, resize the it to fill the
 		// window and resize it again whenever the user resizes the window.
 		if (PaperScope.hasAttribute(element, 'resize')) {
@@ -45,7 +61,7 @@ var View = Base.extend(Callback, /** @lends View# */{
 				that = this;
 			size = DomElement.getViewportBounds(element)
 					.getSize().subtract(offset);
-			this._windowHandlers = {
+			this._windowEvents = {
 				resize: function() {
 					// Only update element offset if it's not invisible, as
 					// otherwise the offset would be wrong.
@@ -57,10 +73,10 @@ var View = Base.extend(Callback, /** @lends View# */{
 							.getSize().subtract(offset));
 				}
 			};
-			DomEvent.add(window, this._windowHandlers);
+			DomEvent.add(window, this._windowEvents);
 		} else {
 			// Try visible size first, since that will help handling previously
-			// scaled canvases (e.g. when dealing with ratio)
+			// scaled canvases (e.g. when dealing with pixel-ratio)
 			size = DomElement.getSize(element);
 			// If the element is invisible, we cannot directly access
 			// element.width / height, because they would appear 0.
@@ -88,6 +104,9 @@ var View = Base.extend(Callback, /** @lends View# */{
 			document.body.appendChild(stats);
 		}
 /*#*/ } else if (__options.environment == 'node') {
+		// Sub-classes may set _pixelRatio first
+		if (!this._pixelRatio)
+			this._pixelRatio = 1;
 		// Generate an id for this view
 		this._id = 'view-' + View._id++;
 		size = new Size(element.width, element.height);
@@ -124,8 +143,8 @@ var View = Base.extend(Callback, /** @lends View# */{
 			this._project.view = null;
 /*#*/ if (__options.environment == 'browser') {
 		// Uninstall event handlers again for this view.
-		DomEvent.remove(this._element, this._viewHandlers);
-		DomEvent.remove(window, this._windowHandlers);
+		DomEvent.remove(this._element, this._viewEvents);
+		DomEvent.remove(window, this._windowEvents);
 /*#*/ } // __options.environment == 'browser'
 		this._element = this._project = null;
 		// Remove all onFrame handlers.
@@ -279,6 +298,32 @@ var View = Base.extend(Callback, /** @lends View# */{
 	},
 
 	/**
+	 * The ratio between physical pixels and device-independent pixels (DIPs)
+	 * of the underlying canvas / device.
+	 * It is {@code 1} for normal displays, and {@code 2} or more for
+	 * high-resolution displays.
+	 *
+	 * @type Number
+	 * @bean
+
+	 */
+	getPixelRatio: function() {
+		return this._pixelRatio;
+	},
+
+	/**
+	 * The resoltuion of the underlying canvas / device in pixel per inch (DPI).
+	 * It is {@code 72} for normal displays, and {@code 144} for high-resolution
+	 * displays with a pixel-ratio of {@code 2}.
+	 *
+	 * @type Number
+	 * @bean
+	 */
+	getResolution: function() {
+		return this._pixelRatio * 72;
+	},
+
+	/**
 	 * The size of the view. Changing the view's size will resize it's
 	 * underlying element.
 	 *
@@ -290,9 +335,9 @@ var View = Base.extend(Callback, /** @lends View# */{
 		return new LinkedSize(size.width, size.height, this, 'setViewSize');
 	},
 
-	setViewSize: function(size) {
-		size = Size.read(arguments);
-		var delta = size.subtract(this._viewSize);
+	setViewSize: function(/* size */) {
+		var size = Size.read(arguments),
+			delta = size.subtract(this._viewSize);
 		if (delta.isZero())
 			return;
 		this._viewSize.set(size.width, size.height);
@@ -334,8 +379,8 @@ var View = Base.extend(Callback, /** @lends View# */{
 	 * @type Size
 	 * @bean
 	 */
-	getSize: function(/* dontLink */) {
-		return this.getBounds().getSize(arguments[0]);
+	getSize: function() {
+		return this.getBounds().getSize();
 	},
 
 	/**
@@ -344,8 +389,8 @@ var View = Base.extend(Callback, /** @lends View# */{
 	 * @type Point
 	 * @bean
 	 */
-	getCenter: function(/* dontLink */) {
-		return this.getBounds().getCenter(arguments[0]);
+	getCenter: function() {
+		return this.getBounds().getCenter();
 	},
 
 	setCenter: function(center) {
@@ -655,25 +700,9 @@ var View = Base.extend(Callback, /** @lends View# */{
 		}
 	}
 
-	function mousedown(event) {
-		// Get the view from the event, and store a reference to the view that
-		// should receive keyboard input.
-		var view = View._focused = getView(event),
-			point = viewToProject(view, event);
-		dragging = true;
-		// Always first call the view's mouse handlers, as required by
-		// CanvasView, and then handle the active tool, if any.
-		view._handleEvent('mousedown', point, event);
-		if (tool = view._scope._tool)
-			tool._handleEvent('mousedown', point, event);
-		// In the end we always call update(), which only updates the view if
-		// anything has changed in the above calls.
-		view.update();
-	}
-
 	function handleMouseMove(view, point, event) {
 		view._handleEvent('mousemove', point, event);
-		var tool = view._scope._tool;
+		var tool = view._scope.tool;
 		if (tool) {
 			// If there's no onMouseDrag, fire onMouseMove while dragging.
 			tool._handleEvent(dragging && tool.responds('mousedrag')
@@ -683,15 +712,80 @@ var View = Base.extend(Callback, /** @lends View# */{
 		return tool;
 	}
 
-	function mousemove(event) {
+	// Touch handling inspired by Hammer.js
+	var navigator = window.navigator,
+		mousedown, mousemove, mouseup;
+	if (navigator.pointerEnabled || navigator.msPointerEnabled) {
+		// HTML5 / MS pointer events
+		mousedown = 'pointerdown MSPointerDown';
+		mousemove = 'pointermove MSPointerMove';
+		mouseup = 'pointerup pointercancel MSPointerUp MSPointerCancel';
+	} else {
+		mousedown = 'touchstart';
+		mousemove = 'touchmove';
+		mouseup = 'touchend touchcancel';
+		// Do not add mouse events on mobile and tablet devices
+		if (!('ontouchstart' in window && navigator.userAgent.match(
+				/mobile|tablet|ip(ad|hone|od)|android|silk/i))) {
+			// For non pointer events browsers and mixed browsers, like chrome
+			// on Windows8 touch laptop.
+			mousedown += ' mousedown';
+			mousemove += ' mousemove';
+			mouseup += ' mouseup';
+		}
+	}
+
+	var viewEvents = {
+		'selectstart dragstart': function(event) {
+			// Only stop this even if we're dragging already, since otherwise no
+			// text whatsoever can be selected on the page.
+			if (dragging)
+				event.preventDefault();
+		}
+	};
+
+	var docEvents = {
+		mouseout: function(event) {
+			// When the moues leaves the document, fire one last mousemove
+			// event, to give items the change to receive a mouseleave, etc.
+			var view = View._focused,
+				target = DomEvent.getRelatedTarget(event);
+			if (view && (!target || target.nodeName === 'HTML'))
+				handleMouseMove(view, viewToProject(view, event), event);
+		},
+
+		scroll: updateFocus
+	};
+
+	// mousemove and mouseup events need to be installed on document, not the
+	// view element, since we want to catch the end of drag events even outside
+	// our view. Only the mousedown events are installed on the view, as defined
+	// by _viewEvents below.
+	viewEvents[mousedown] = function(event) {
+		// Get the view from the event, and store a reference to the view that
+		// should receive keyboard input.
+		var view = View._focused = getView(event),
+			point = viewToProject(view, event);
+		dragging = true;
+		// Always first call the view's mouse handlers, as required by
+		// CanvasView, and then handle the active tool, if any.
+		view._handleEvent('mousedown', point, event);
+		if (tool = view._scope.tool)
+			tool._handleEvent('mousedown', point, event);
+		// In the end we always call update(), which only updates the view if
+		// anything has changed in the above calls.
+		view.update();
+	};
+
+	docEvents[mousemove] = function(event) {
 		var view = View._focused;
 		if (!dragging) {
 			// See if we can get the view from the current event target, and
 			// handle the mouse move over it.
 			var target = getView(event);
 			if (target) {
-				// Temporarily focus this view without making it sticky, so
-				// Key events are handled too during the mouse over
+				// Temporarily focus this view without making it sticky, so Key
+				// events are handled too during the mouse over.
 				// If we switch view, fire one last mousemove in the old view,
 				// to give items the change to receive a mouseleave, etc.
 				if (view !== target)
@@ -706,22 +800,12 @@ var View = Base.extend(Callback, /** @lends View# */{
 		}
 		if (view) {
 			var point = viewToProject(view, event);
-			if (dragging || new Rectangle(new Point(),
-					view.getViewSize()).contains(point))
+			if (dragging || view.getBounds().contains(point))
 				tool = handleMouseMove(view, point, event);
 		}
-	}
+	};
 
-	function mouseout(event) {
-		// When the moues leaves the document, fire one last mousemove event,
-		// to give items the change to receive a mouseleave, etc.
-		var view = View._focused,
-			target = DomEvent.getRelatedTarget(event);
-		if (view && (!target || target.nodeName === 'HTML'))
-			handleMouseMove(view, viewToProject(view, event), event);
-	}
-
-	function mouseup(event) {
+	docEvents[mouseup] = function(event) {
 		var view = View._focused;
 		if (!view || !dragging)
 			return;
@@ -732,40 +816,16 @@ var View = Base.extend(Callback, /** @lends View# */{
 		if (tool)
 			tool._handleEvent('mouseup', point, event);
 		view.update();
-	}
+	};
 
-	function selectstart(event) {
-		// Only stop this even if we're dragging already, since otherwise no
-		// text whatsoever can be selected on the page.
-		if (dragging)
-			event.preventDefault();
-	}
-
-	// mousemove and mouseup events need to be installed on document, not the
-	// view element, since we want to catch the end of drag events even outside
-	// our view. Only the mousedown events are installed on the view, as handled
-	// by _createHandlers below.
-
-	DomEvent.add(document, {
-		mousemove: mousemove,
-		mouseout: mouseout,
-		mouseup: mouseup,
-		touchmove: mousemove,
-		touchend: mouseup,
-		selectstart: selectstart,
-		scroll: updateFocus
-	});
+	DomEvent.add(document, docEvents);
 
 	DomEvent.add(window, {
 		load: updateFocus
 	});
 
 	return {
-		_viewHandlers: {
-			mousedown: mousedown,
-			touchstart: mousedown,
-			selectstart: selectstart
-		},
+		_viewEvents: viewEvents,
 
 		// To be defined in subclasses
 		_handleEvent: function(/* type, point, event */) {},
