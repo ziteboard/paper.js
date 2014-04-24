@@ -34,18 +34,18 @@ var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
 	 * @example {@paperscript}
 	 * // Create a circle shaped path with a hole in it:
 	 * var circle = new Path.Circle({
-	 * 	center: new Point(50, 50),
-	 * 	radius: 30
+	 *     center: new Point(50, 50),
+	 *     radius: 30
 	 * });
-	 * 
+	 *
 	 * var innerCircle = new Path.Circle({
-	 * 	center: new Point(50, 50),
-	 * 	radius: 10
+	 *     center: new Point(50, 50),
+	 *     radius: 10
 	 * });
-	 * 
+	 *
 	 * var compoundPath = new CompoundPath([circle, innerCircle]);
 	 * compoundPath.fillColor = 'red';
-	 * 
+	 *
 	 * // Move the inner circle 5pt to the right:
 	 * compoundPath.children[1].position.x += 5;
 	 */
@@ -60,18 +60,18 @@ var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
 	 *
 	 * @example {@paperscript}
 	 * var path = new CompoundPath({
-	 * 	children: [
-	 * 		new Path.Circle({
-	 * 			center: new Point(50, 50),
-	 * 			radius: 30
-	 * 		}),
-	 * 		new Path.Circle({
-	 * 			center: new Point(50, 50),
-	 * 			radius: 10
-	 * 		})
-	 * 	],
-	 * 	fillColor: 'black',
-	 * 	selected: true
+	 *     children: [
+	 *         new Path.Circle({
+	 *             center: new Point(50, 50),
+	 *             radius: 30
+	 *         }),
+	 *         new Path.Circle({
+	 *             center: new Point(50, 50),
+	 *             radius: 10
+	 *         })
+	 *     ],
+	 *     fillColor: 'black',
+	 *     selected: true
 	 * });
 	 */
 	/**
@@ -101,17 +101,10 @@ var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
 		}
 	},
 
-	_changed: function _changed(flags) {
-		_changed.base.call(this, flags);
-		// Clear cached native Path
-		if (flags & (/*#=*/ ChangeFlag.HIERARCHY | /*#=*/ ChangeFlag.GEOMETRY))
-			this._currentPath = undefined;
-	},
-
 	insertChildren: function insertChildren(index, items, _preserve) {
 		// Pass on 'path' for _type, to make sure that only paths are added as
 		// children.
-		items = insertChildren.base.call(this, index, items, _preserve, 'path');
+		items = insertChildren.base.call(this, index, items, _preserve, Path);
 		// All children except for the bottom one (first one in list) are set
 		// to anti-clockwise orientation, so that they appear as holes, but
 		// only if their orientation was not already specified before
@@ -145,7 +138,8 @@ var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
 	},
 
 	setClockwise: function(clockwise) {
-		if (this.isClockwise() != !!clockwise)
+		/*jshint -W018 */
+		if (this.isClockwise() !== !!clockwise)
 			this.reverse();
 	},
 
@@ -221,21 +215,26 @@ var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
 		for (var i = 0, l = children.length; i < l; i++)
 			area += children[i].getArea();
 		return area;
-	},
+	}
+}, /** @lends CompoundPath# */{
+	// Enforce bean creation for getPathData(), as it has hidden parameters.
+	beans: true,
 
-	getPathData: function(precision) {
+	getPathData: function(_precision) {
+		// NOTE: #setPathData() is defined in PathItem.
 		var children = this._children,
 			paths = [];
 		for (var i = 0, l = children.length; i < l; i++)
-			paths.push(children[i].getPathData(precision));
+			paths.push(children[i].getPathData(_precision));
 		return paths.join(' ');
-	},
-
+	}
+}, /** @lends CompoundPath# */{
 	_getChildHitTestOptions: function(options) {
 		// If we're not specifically asked to returns paths through
-		// options.type == 'path' do not test children for fill, since a
+		// options.class == Path, do not test children for fill, since a
 		// compound path forms one shape.
-		return options.type === 'path'
+		// Also support legacy format `type: 'path'`.
+		return options.class === Path || options.type === 'path'
 				? options
 				: new Base(options, { fill: false });
 	},
@@ -249,8 +248,8 @@ var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
 		if (this._currentPath) {
 			ctx.currentPath = this._currentPath;
 		} else {
+			param = param.extend({ dontStart: true, dontFinish: true });
 			ctx.beginPath();
-			param = param.extend({ compound: true });
 			for (var i = 0, l = children.length; i < l; i++)
 				children[i].draw(ctx, param);
 			this._currentPath = ctx.currentPath;
@@ -265,6 +264,16 @@ var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
 			}
 			if (style.hasStroke())
 				ctx.stroke();
+		}
+	},
+
+	_drawSelected: function(ctx, matrix) {
+		var children = this._children;
+		for (var i = 0, l = children.length; i < l; i++) {
+			var child = children[i],
+				mx = child._matrix;
+			child._drawSelected(ctx, mx.isIdentity() ? matrix
+					: matrix.clone().concatenate(child._matrix));
 		}
 	}
 }, new function() { // Injection scope for PostScript-like drawing functions
@@ -299,8 +308,8 @@ var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
 			this.moveTo(last ? point.add(last._point) : point);
 		},
 
-		closePath: function() {
-			getCurrentPath(this, true).closePath();
+		closePath: function(join) {
+			getCurrentPath(this, true).closePath(join);
 		}
 	};
 

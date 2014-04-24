@@ -21,6 +21,9 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
 	_class: 'Rectangle',
 	// Tell Base.read that the Rectangle constructor supports reading with index
 	_readIndex: true,
+	// Enforce creation of beans, as bean getters have hidden parameters.
+	// See  #getPoint() below.
+	beans: true,
 
 	/**
 	 * Creates a Rectangle object.
@@ -35,17 +38,17 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
 	 * @name Rectangle#initialize
 	 * @param {Object} object an object containing properties to be set on the
 	 *        rectangle.
-	 * 
+	 *
 	 * @example // Create a rectangle between {x: 20, y: 20} and {x: 80, y:80}
 	 * var rectangle = new Rectangle({
-	 * 	point: [20, 20],
-	 * 	size: [60, 60]
+	 *     point: [20, 20],
+	 *     size: [60, 60]
 	 * });
-	 * 
+	 *
 	 * @example // Create a rectangle between {x: 20, y: 20} and {x: 80, y:80}
 	 * var rectangle = new Rectangle({
-	 * 	from: [20, 20],
-	 * 	to: [80, 80]
+	 *     from: [20, 20],
+	 *     to: [80, 80]
 	 * });
 	 */
 	/**
@@ -508,15 +511,15 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
 	 * circle.fillColor = 'red';
 	 *
 	 * function onMouseMove(event) {
-	 * 	// Check whether the mouse position intersects with the
-	 * 	// bounding box of the item:
-	 * 	if (circle.bounds.contains(event.point)) {
-	 * 		// If it intersects, fill it with green:
-	 * 		circle.fillColor = 'green';
-	 * 	} else {
-	 * 		// If it doesn't intersect, fill it with red:
-	 * 		circle.fillColor = 'red';
-	 * 	}
+	 *     // Check whether the mouse position intersects with the
+	 *     // bounding box of the item:
+	 *     if (circle.bounds.contains(event.point)) {
+	 *         // If it intersects, fill it with green:
+	 *         circle.fillColor = 'green';
+	 *     } else {
+	 *         // If it doesn't intersect, fill it with red:
+	 *         circle.fillColor = 'red';
+	 *     }
 	 * }
 	 */
 	/**
@@ -535,8 +538,8 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
 	 *
 	 * // All newly created paths will inherit these styles:
 	 * project.currentStyle = {
-	 * 	fillColor: 'green',
-	 * 	strokeColor: 'black'
+	 *     fillColor: 'green',
+	 *     strokeColor: 'black'
 	 * };
 	 *
 	 * // Create a circle shaped path at {x: 80, y: 50}
@@ -548,20 +551,20 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
 	 * var circle = new Path.Circle(new Point(80, 50), 30);
 	 *
 	 * function onMouseMove(event) {
-	 * 	// Move the circle to the position of the mouse:
-	 * 	circle.position = event.point;
+	 *     // Move the circle to the position of the mouse:
+	 *     circle.position = event.point;
 	 *
-	 * 	// Check whether the bounding box of the smaller circle
-	 * 	// is contained within the bounding box of the larger item:
-	 * 	if (largeCircle.bounds.contains(circle.bounds)) {
-	 * 		// If it does, fill it with green:
-	 * 		circle.fillColor = 'green';
-	 * 		largeCircle.fillColor = 'green';
-	 * 	} else {
-	 * 		// If doesn't, fill it with red:
-	 * 		circle.fillColor = 'red';
-	 * 		largeCircle.fillColor = 'red';
-	 * 	}
+	 *     // Check whether the bounding box of the smaller circle
+	 *     // is contained within the bounding box of the larger item:
+	 *     if (largeCircle.bounds.contains(circle.bounds)) {
+	 *         // If it does, fill it with green:
+	 *         circle.fillColor = 'green';
+	 *         largeCircle.fillColor = 'green';
+	 *     } else {
+	 *         // If doesn't, fill it with red:
+	 *         circle.fillColor = 'red';
+	 *         largeCircle.fillColor = 'red';
+	 *     }
 	 * }
 	 */
 	contains: function(arg) {
@@ -605,8 +608,8 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
 	 *
 	 * // All newly created paths will inherit these styles:
 	 * project.currentStyle = {
-	 * 	fillColor: 'green',
-	 * 	strokeColor: 'black'
+	 *     fillColor: 'green',
+	 *     strokeColor: 'black'
 	 * };
 	 *
 	 * // Create a circle shaped path at {x: 80, y: 50}
@@ -618,20 +621,20 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
 	 * var circle = new Path.Circle(new Point(80, 50), 30);
 	 *
 	 * function onMouseMove(event) {
-	 * 	// Move the circle to the position of the mouse:
-	 * 	circle.position = event.point;
+	 *     // Move the circle to the position of the mouse:
+	 *     circle.position = event.point;
 	 *
-	 * 	// Check whether the bounding box of the two circle
-	 * 	// shaped paths intersect:
-	 * 	if (largeCircle.bounds.intersects(circle.bounds)) {
-	 * 		// If it does, fill it with green:
-	 * 		circle.fillColor = 'green';
-	 * 		largeCircle.fillColor = 'green';
-	 * 	} else {
-	 * 		// If doesn't, fill it with red:
-	 * 		circle.fillColor = 'red';
-	 * 		largeCircle.fillColor = 'red';
-	 * 	}
+	 *     // Check whether the bounding box of the two circle
+	 *     // shaped paths intersect:
+	 *     if (largeCircle.bounds.intersects(circle.bounds)) {
+	 *         // If it does, fill it with green:
+	 *         circle.fillColor = 'green';
+	 *         largeCircle.fillColor = 'green';
+	 *     } else {
+	 *         // If doesn't, fill it with red:
+	 *         circle.fillColor = 'red';
+	 *         largeCircle.fillColor = 'red';
+	 *     }
 	 * }
 	 */
 	intersects: function(/* rect */) {
@@ -821,7 +824,11 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
 				this[setX](point.x);
 				this[setY](point.y);
 			};
-		}, {});
+		}, {
+			// Enforce creation of beans, as bean getters have hidden parameters
+			// See _dontLink argument above.
+			beans: true
+		});
 });
 
 /**
@@ -907,7 +914,7 @@ var LinkedRectangle = Rectangle.extend({
 				if (owner.setSelected) {
 					owner._boundsSelected = selected;
 					// Update the owner's selected state too, so the bounds
-					// actually get drawn. When deselecting, take a path's  
+					// actually get drawn. When deselecting, take a path's
 					// _selectedSegmentState into account too, since it will
 					// have to remain selected even when bounds are deselected
 					owner.setSelected(selected || owner._selectedSegmentState > 0);

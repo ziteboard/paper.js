@@ -53,13 +53,13 @@ var ToolEvent = Event.extend(/** @lends ToolEvent# */{
 	 *
 	 * @example
 	 * function onMouseDrag(event) {
-	 * 	// the position of the mouse when it is dragged
-	 * 	console.log(event.point);
+	 *     // the position of the mouse when it is dragged
+	 *     console.log(event.point);
 	 * }
 	 *
 	 * function onMouseUp(event) {
-	 * 	// the position of the mouse when it is released
-	 * 	console.log(event.point);
+	 *     // the position of the mouse when it is released
+	 *     console.log(event.point);
 	 * }
 	 *
 	 * @type Point
@@ -169,7 +169,7 @@ var ToolEvent = Event.extend(/** @lends ToolEvent# */{
 
 	/**
 	 * The item at the position of the mouse (if any).
-	 * 
+	 *
 	 * If the item is contained within one or more {@link Group} or
 	 * {@link CompoundPath} items, the most top level group or compound path
 	 * that it is contained within is returned.
@@ -184,7 +184,7 @@ var ToolEvent = Event.extend(/** @lends ToolEvent# */{
 				var item = result.item,
 					// Find group parent, but exclude layers
 					parent = item._parent;
-				while (/^(group|compound-path)$/.test(parent._type)) {
+				while (/^(Group|CompoundPath)$/.test(parent._class)) {
 					item = parent;
 					parent = parent._parent;
 				}
@@ -193,7 +193,7 @@ var ToolEvent = Event.extend(/** @lends ToolEvent# */{
 		}
 		return this._item;
 	},
-	
+
 	setItem: function(item) {
 		this._item = item;
 	},

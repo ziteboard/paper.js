@@ -1,3 +1,4 @@
+
 /*
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
@@ -78,8 +79,8 @@ var Point = Base.extend(/** @lends Point# */{
 	 * // properties:
 	 *
 	 * var point = new Point({
-	 * 	length: 10,
-	 * 	angle: 90
+	 *     length: 10,
+	 *     angle: 90
 	 * });
 	 * console.log(point.length); // 10
 	 * console.log(point.angle); // 90
@@ -88,8 +89,8 @@ var Point = Base.extend(/** @lends Point# */{
 	 * // Creating a point at x: 10, y: 20 using an object literal:
 	 *
 	 * var point = new Point({
-	 * 	x: 10,
-	 * 	y: 20
+	 *     x: 10,
+	 *     y: 20
 	 * });
 	 * console.log(point.x); // 10
 	 * console.log(point.y); // 20
@@ -98,8 +99,8 @@ var Point = Base.extend(/** @lends Point# */{
 	 * // Passing an object to a functionality that expects a point:
 	 *
 	 * var center = {
-	 * 	x: 50,
-	 * 	y: 50
+	 *     x: 50,
+	 *     y: 50
 	 * };
 	 *
 	 * // Creates a circle shaped path at x: 50, y: 50
@@ -236,6 +237,246 @@ var Point = Base.extend(/** @lends Point# */{
 		// For speed reasons, we directly call formatter.number() here, instead
 		// of converting array through Base.serialize() which makes a copy.
 		return [f.number(this.x), f.number(this.y)];
+	},
+
+	/**
+	 * The length of the vector that is represented by this point's coordinates.
+	 * Each point can be interpreted as a vector that points from the origin
+	 * ({@code x = 0}, {@code y = 0}) to the point's location.
+	 * Setting the length changes the location but keeps the vector's angle.
+	 *
+	 * @type Number
+	 * @bean
+	 */
+	getLength: function() {
+		return Math.sqrt(this.x * this.x + this.y * this.y);
+	},
+
+	setLength: function(length) {
+		// Whenever chaining both x & y, use #set() instead of direct
+		// assignment, so LinkedPoint does not report changes twice.
+		if (this.isZero()) {
+			var angle = this._angle || 0;
+			this.set(
+				Math.cos(angle) * length,
+				Math.sin(angle) * length
+			);
+		} else {
+			var scale = length / this.getLength();
+			// Force calculation of angle now, so it will be preserved even when
+			// x and y are 0
+			if (Numerical.isZero(scale))
+				this.getAngle();
+			this.set(
+				this.x * scale,
+				this.y * scale
+			);
+		}
+	},
+	/**
+	 * Returns the smaller angle between two vectors. The angle is unsigned, no
+	 * information about rotational direction is given.
+	 *
+	 * @name Point#getAngle
+	 * @function
+	 * @param {Point} point
+	 * @return {Number} the angle in degrees
+	 */
+	/**
+	 * The vector's angle in degrees, measured from the x-axis to the vector.
+	 *
+	 * @name Point#getAngle
+	 * @bean
+	 * @type Number
+	 */
+	getAngle: function(/* point */) {
+		return this.getAngleInRadians.apply(this, arguments) * 180 / Math.PI;
+	},
+
+	setAngle: function(angle) {
+		this.setAngleInRadians.call(this, angle * Math.PI / 180);
+	},
+
+	getAngleInDegrees: '#getAngle',
+	setAngleInDegrees: '#setAngle',
+
+	/**
+	 * Returns the smaller angle between two vectors in radians. The angle is
+	 * unsigned, no information about rotational direction is given.
+	 *
+	 * @name Point#getAngleInRadians
+	 * @function
+	 * @param {Point} point
+	 * @return {Number} the angle in radians
+	 */
+	/**
+	 * The vector's angle in radians, measured from the x-axis to the vector.
+	 *
+	 * @name Point#getAngleInRadians
+	 * @bean
+	 * @type Number
+	 */
+	getAngleInRadians: function(/* point */) {
+		if (!arguments.length) {
+			return this.isZero()
+					// Return the preserved angle in case the vector has no
+					// length, and update the internal _angle in case the
+					// vector has a length. See #setAngle() for more
+					// explanations.
+					? this._angle || 0
+					: this._angle = Math.atan2(this.y, this.x);
+		} else {
+			var point = Point.read(arguments),
+				div = this.getLength() * point.getLength();
+			if (Numerical.isZero(div)) {
+				return NaN;
+			} else {
+				return Math.acos(this.dot(point) / div);
+			}
+		}
+	},
+
+	setAngleInRadians: function(angle) {
+		// We store a reference to _angle internally so we still preserve it
+		// when the vector's length is set to zero, and then anything else.
+		// Note that we cannot rely on it if x and y are something else than 0,
+		// since updating x / y does not automatically change _angle!
+		this._angle = angle;
+		if (!this.isZero()) {
+			var length = this.getLength();
+			// Use #set() instead of direct assignment of x/y, so LinkedPoint
+			// does not report changes twice.
+			this.set(
+				Math.cos(angle) * length,
+				Math.sin(angle) * length
+			);
+		}
+	},
+
+	/**
+	 * The quadrant of the {@link #angle} of the point.
+	 *
+	 * Angles between 0 and 90 degrees are in quadrant {@code 1}. Angles between
+	 * 90 and 180 degrees are in quadrant {@code 2}, angles between 180 and 270
+	 * degrees are in quadrant {@code 3} and angles between 270 and 360 degrees
+	 * are in quadrant {@code 4}.
+	 *
+	 * @type Number
+	 * @bean
+	 *
+	 * @example
+	 * var point = new Point({
+	 *     angle: 10,
+	 *     length: 20
+	 * });
+	 * console.log(point.quadrant); // 1
+	 *
+	 * point.angle = 100;
+	 * console.log(point.quadrant); // 2
+	 *
+	 * point.angle = 190;
+	 * console.log(point.quadrant); // 3
+	 *
+	 * point.angle = 280;
+	 * console.log(point.quadrant); // 4
+	 */
+	getQuadrant: function() {
+		return this.x >= 0 ? this.y >= 0 ? 1 : 4 : this.y >= 0 ? 2 : 3;
+	}
+}, /** @lends Point# */{
+	// Explicitly deactivate the creation of beans, as we have functions here
+	// that look like bean getters but actually read arguments.
+	// See #getDirectedAngle(), #getDistance()
+	beans: false,
+
+	/**
+	 * Returns the angle between two vectors. The angle is directional and
+	 * signed, giving information about the rotational direction.
+	 *
+	 * Read more about angle units and orientation in the description of the
+	 * {@link #angle} property.
+	 *
+	 * @param {Point} point
+	 * @return {Number} the angle between the two vectors
+	 */
+	getDirectedAngle: function(/* point */) {
+		var point = Point.read(arguments);
+		return Math.atan2(this.cross(point), this.dot(point)) * 180 / Math.PI;
+	},
+
+	/**
+	 * Returns the distance between the point and another point.
+	 *
+	 * @param {Point} point
+	 * @param {Boolean} [squared=false] Controls whether the distance should
+	 *        remain squared, or its square root should be calculated.
+	 * @return {Number}
+	 */
+	getDistance: function(/* point, squared */) {
+		var point = Point.read(arguments),
+			x = point.x - this.x,
+			y = point.y - this.y,
+			d = x * x + y * y,
+			squared = Base.read(arguments);
+		return squared ? d : Math.sqrt(d);
+	},
+
+	/**
+	 * Normalize modifies the {@link #length} of the vector to {@code 1} without
+	 * changing its angle and returns it as a new point. The optional
+	 * {@code length} parameter defines the length to normalize to.
+	 * The object itself is not modified!
+	 *
+	 * @param {Number} [length=1] The length of the normalized vector
+	 * @return {Point} the normalized vector of the vector that is represented
+	 *                 by this point's coordinates
+	 */
+	normalize: function(length) {
+		if (length === undefined)
+			length = 1;
+		var current = this.getLength(),
+			scale = current !== 0 ? length / current : 0,
+			point = new Point(this.x * scale, this.y * scale);
+		// Preserve angle.
+		if (scale >= 0)
+			point._angle = this._angle;
+		return point;
+	},
+
+	/**
+	 * Rotates the point by the given angle around an optional center point.
+	 * The object itself is not modified.
+	 *
+	 * Read more about angle units and orientation in the description of the
+	 * {@link #angle} property.
+	 *
+	 * @param {Number} angle the rotation angle
+	 * @param {Point} center the center point of the rotation
+	 * @returns {Point} the rotated point
+	 */
+	rotate: function(angle, center) {
+		if (angle === 0)
+			return this.clone();
+		angle = angle * Math.PI / 180;
+		var point = center ? this.subtract(center) : this,
+			s = Math.sin(angle),
+			c = Math.cos(angle);
+		point = new Point(
+			point.x * c - point.y * s,
+			point.x * s + point.y * c
+		);
+		return center ? point.add(center) : point;
+	},
+
+	/**
+	 * Transforms the point by the matrix as a new point. The object itself is
+	 * not modified!
+	 *
+	 * @param {Matrix} matrix
+	 * @return {Point} the transformed point
+	 */
+	transform: function(matrix) {
+		return matrix ? matrix._transformPoint(this) : this;
 	},
 
 	/**
@@ -427,255 +668,6 @@ var Point = Base.extend(/** @lends Point# */{
 
 	negate: function() {
 		return new Point(-this.x, -this.y);
-	},
-
-	/**
-	 * Transforms the point by the matrix as a new point. The object itself
-	 * is not modified!
-	 *
-	 * @param {Matrix} matrix
-	 * @return {Point} the transformed point
-	 */
-	transform: function(matrix) {
-		return matrix ? matrix._transformPoint(this) : this;
-	},
-
-	/**
-	 * {@grouptitle Distance & Length}
-	 *
-	 * Returns the distance between the point and another point.
-	 *
-	 * @param {Point} point
-	 * @param {Boolean} [squared=false] Controls whether the distance should
-	 *        remain squared, or its square root should be calculated.
-	 * @return {Number}
-	 */
-	getDistance: function(_point, squared) {
-		// NOTE: Although we're reading from the argument list, we need the
-		// above arguments to prevent beans from being created (Strap.js issue).
-		// And for browser optimization we shouldn't re-asign an object to it,
-		// but we need to prevent the minifier from removing it again, so:
-		var point = Point.read(arguments),
-			x = point.x - this.x,
-			y = point.y - this.y,
-			d = x * x + y * y;
-		// Reassigning boolean values to arguments is apparently OK.
-		squared = Base.read(arguments);
-		return squared ? d : Math.sqrt(d);
-	},
-
-	/**
-	 * The length of the vector that is represented by this point's coordinates.
-	 * Each point can be interpreted as a vector that points from the origin
-	 * ({@code x = 0}, {@code y = 0}) to the point's location.
-	 * Setting the length changes the location but keeps the vector's angle.
-	 *
-	 * @type Number
-	 * @bean
-	 */
-	getLength: function() {
-		return Math.sqrt(this.x * this.x + this.y * this.y);
-	},
-
-	setLength: function(length) {
-		// Whenever chaning both x & y, use #set() instead of direct assignment,
-		// so LinkedPoint does not report changes twice.
-		if (this.isZero()) {
-			var angle = this._angle || 0;
-			this.set(
-				Math.cos(angle) * length,
-				Math.sin(angle) * length
-			);
-		} else {
-			var scale = length / this.getLength();
-			// Force calculation of angle now, so it will be preserved even when
-			// x and y are 0
-			if (Numerical.isZero(scale))
-				this.getAngle();
-			this.set(
-				this.x * scale,
-				this.y * scale
-			);
-		}
-	},
-
-	/**
-	 * Normalize modifies the {@link #length} of the vector to {@code 1} without
-	 * changing its angle and returns it as a new point. The optional
-	 * {@code length} parameter defines the length to normalize to.
-	 * The object itself is not modified!
-	 *
-	 * @param {Number} [length=1] The length of the normalized vector
-	 * @return {Point} the normalized vector of the vector that is represented
-	 *                 by this point's coordinates
-	 */
-	normalize: function(length) {
-		if (length === undefined)
-			length = 1;
-		var current = this.getLength(),
-			scale = current !== 0 ? length / current : 0,
-			point = new Point(this.x * scale, this.y * scale);
-		// Preserve angle.
-		if (scale >= 0)
-			point._angle = this._angle;
-		return point;
-	},
-
-	/**
-	 * {@grouptitle Angle & Rotation}
-	 * Returns the smaller angle between two vectors. The angle is unsigned, no
-	 * information about rotational direction is given.
-	 *
-	 * @name Point#getAngle
-	 * @function
-	 * @param {Point} point
-	 * @return {Number} the angle in degrees
-	 */
-	/**
-	 * The vector's angle in degrees, measured from the x-axis to the vector.
-	 *
-	 * @name Point#getAngle
-	 * @bean
-	 * @type Number
-	 */
-	getAngle: function(/* point */) {
-		return this.getAngleInRadians.apply(this, arguments) * 180 / Math.PI;
-	},
-
-	setAngle: function(angle) {
-		this.setAngleInRadians.call(this, angle * Math.PI / 180);
-	},
-
-	getAngleInDegrees: '#getAngle',
-	setAngleInDegrees: '#setAngle',
-
-	/**
-	 * Returns the smaller angle between two vectors in radians. The angle is
-	 * unsigned, no information about rotational direction is given.
-	 *
-	 * @name Point#getAngleInRadians
-	 * @function
-	 * @param {Point} point
-	 * @return {Number} the angle in radians
-	 */
-	/**
-	 * The vector's angle in radians, measured from the x-axis to the vector.
-	 *
-	 * @name Point#getAngleInRadians
-	 * @bean
-	 * @type Number
-	 */
-	getAngleInRadians: function(/* point */) {
-		if (!arguments.length) {
-			return this.isZero()
-					// Return the preseved angle in case the vector has no
-					// length, and update the internal _angle in case the
-					// vector has a length. See #setAngle() for more
-					// explanations.
-					? this._angle || 0
-					: this._angle = Math.atan2(this.y, this.x);
-		} else {
-			var point = Point.read(arguments),
-				div = this.getLength() * point.getLength();
-			if (Numerical.isZero(div)) {
-				return NaN;
-			} else {
-				return Math.acos(this.dot(point) / div);
-			}
-		}
-	},
-
-	setAngleInRadians: function(angle) {
-		// We store a reference to _angle internally so we still preserve it
-		// when the vector's length is set to zero, and then anything else.
-		// Note that we cannot rely on it if x and y are something else than 0,
-		// since updating x / y does not automatically change _angle!
-		this._angle = angle;
-		if (!this.isZero()) {
-			var length = this.getLength();
-			// Use #set() instead of direct assignment of x/y, so LinkedPoint
-			// does not report changes twice.
-			this.set(
-				Math.cos(angle) * length,
-				Math.sin(angle) * length
-			);
-		}
-	},
-
-	/**
-	 * The quadrant of the {@link #angle} of the point.
-	 *
-	 * Angles between 0 and 90 degrees are in quadrant {@code 1}. Angles between
-	 * 90 and 180 degrees are in quadrant {@code 2}, angles between 180 and 270
-	 * degrees are in quadrant {@code 3} and angles between 270 and 360 degrees
-	 * are in quadrant {@code 4}.
-	 *
-	 * @type Number
-	 * @bean
-	 *
-	 * @example
-	 * var point = new Point({
-	 * 	angle: 10,
-	 * 	length: 20
-	 * });
-	 * console.log(point.quadrant); // 1
-	 *
-	 * point.angle = 100;
-	 * console.log(point.quadrant); // 2
-	 *
-	 * point.angle = 190;
-	 * console.log(point.quadrant); // 3
-	 *
-	 * point.angle = 280;
-	 * console.log(point.quadrant); // 4
-	 */
-	getQuadrant: function() {
-		return this.x >= 0 ? this.y >= 0 ? 1 : 4 : this.y >= 0 ? 2 : 3;
-	},
-
-	/**
-	 * Returns the angle between two vectors. The angle is directional and
-	 * signed, giving information about the rotational direction.
-	 *
-	 * Read more about angle units and orientation in the description of the
-	 * {@link #angle} property.
-	 *
-	 * @param {Point} point
-	 * @return {Number} the angle between the two vectors
-	 */
-	getDirectedAngle: function(_point) {
-		// NOTE: Although we're reading from the argument list, we need the
-		// above arguments to prevent beans from being created (Strap.js issue).
-		// And for browser optimization we shouldn't re-asign an object to it,
-		// but we need to prevent the minifier from removing it again, so:
-		var point = _point;
-		point = Point.read(arguments);
-		return Math.atan2(this.cross(point), this.dot(point)) * 180 / Math.PI;
-	},
-
-	/**
-	 * Rotates the point by the given angle around an optional center point.
-	 * The object itself is not modified.
-	 *
-	 * Read more about angle units and orientation in the description of the
-	 * {@link #angle} property.
-	 *
-	 * @param {Number} angle the rotation angle
-	 * @param {Point} center the center point of the rotation
-	 * @returns {Point} the rotated point
-	 */
-	rotate: function(angle, center) {
-		if (angle === 0)
-			return this.clone();
-		angle = angle * Math.PI / 180;
-		var point = center ? this.subtract(center) : this,
-			s = Math.sin(angle),
-			c = Math.cos(angle);
-		point = new Point(
-			point.x * c - point.y * s,
-			point.x * s + point.y * c
-		);
-		return center ? point.add(center) : point;
 	},
 
 	/**
@@ -871,7 +863,7 @@ var Point = Base.extend(/** @lends Point# */{
 		 * console.log(minPoint); // {x: 10, y: 5}
 		 */
 		min: function(/* point1, point2 */) {
-			var point1 = Point.read(arguments);
+			var point1 = Point.read(arguments),
 				point2 = Point.read(arguments);
 			return new Point(
 				Math.min(point1.x, point2.x),
@@ -895,7 +887,7 @@ var Point = Base.extend(/** @lends Point# */{
 		 * console.log(maxPoint); // {x: 200, y: 100}
 		 */
 		max: function(/* point1, point2 */) {
-			var point1 = Point.read(arguments);
+			var point1 = Point.read(arguments),
 				point2 = Point.read(arguments);
 			return new Point(
 				Math.max(point1.x, point2.x),

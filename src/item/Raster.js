@@ -40,36 +40,36 @@ var Raster = Item.extend(/** @lends Raster# */{
 	 * @param {HTMLImageElement|Canvas|String} [source] the source of the raster
 	 * @param {HTMLImageElement|Canvas|String} [position] the center position at
 	 * which the raster item is placed.
-	 * 
+	 *
 	 * @example {@paperscript height=300} // Creating a raster using a url
 	 * var url = 'http://upload.wikimedia.org/wikipedia/en/2/24/Lenna.png';
 	 * var raster = new Raster(url);
-	 * 
+	 *
 	 * // If you create a Raster using a url, you can use the onLoad
 	 * // handler to do something once it is loaded:
 	 * raster.onLoad = function() {
-	 * 	console.log('The image has loaded.');
+	 *     console.log('The image has loaded.');
 	 * };
-	 * 
+	 *
 	 * @example // Creating a raster using the id of a DOM Image:
-	 * 
+	 *
 	 * // Create a raster using the id of the image:
 	 * var raster = new Raster('art');
-	 * 
+	 *
 	 * @example // Creating a raster using a DOM Image:
-	 * 
+	 *
 	 * // Find the element using its id:
 	 * var imageElement = document.getElementById('art');
-	 * 
+	 *
 	 * // Create the raster:
 	 * var raster = new Raster(imageElement);
-	 * 
+	 *
 	 * @example {@paperscript height=300}
 	 * var raster = new Raster({
-	 * 	source: 'http://upload.wikimedia.org/wikipedia/en/2/24/Lenna.png',
-	 * 	position: view.center
+	 *     source: 'http://upload.wikimedia.org/wikipedia/en/2/24/Lenna.png',
+	 *     position: view.center
 	 * });
-	 * 
+	 *
 	 * raster.scale(0.5);
 	 * raster.rotate(10);
 	 */
@@ -159,7 +159,7 @@ var Raster = Item.extend(/** @lends Raster# */{
 	},
 
 	isEmpty: function() {
-		return this._size.width == 0 && this._size.height == 0;
+		return this._size.width === 0 && this._size.height === 0;
 	},
 
 	/**
@@ -193,7 +193,7 @@ var Raster = Item.extend(/** @lends Raster# */{
 		if (this._canvas)
 			CanvasProvider.release(this._canvas);
 		// Due to similarities, we can handle both canvas and image types here.
-		if (image.getContext) {
+		if (image && image.getContext) {
 			// A canvas object
 			this._image = null;
 			this._canvas = image;
@@ -207,8 +207,8 @@ var Raster = Item.extend(/** @lends Raster# */{
 		// apparently can have width / height set to 0 when the image is
 		// invisible in the document.
 		this._size = new Size(
-				image.naturalWidth || image.width,
-				image.naturalHeight || image.height);
+				image ? image.naturalWidth || image.width : 0,
+				image ? image.naturalHeight || image.height : 0);
 		this._context = null;
 		this._changed(/*#=*/ Change.GEOMETRY | /*#=*/ Change.PIXELS);
 	},
@@ -274,19 +274,19 @@ var Raster = Item.extend(/** @lends Raster# */{
 	 * ID of a DOM element to get the image from (either a DOM Image or a
 	 * Canvas). Reading this property will return the url of the source image or
 	 * a data-url.
-	 * 
+	 *
 	 * @bean
 	 * @type HTMLImageElement|Canvas|String
-	 * 
+	 *
 	 * @example {@paperscript}
 	 * var raster = new Raster();
 	 * raster.source = 'http://paperjs.org/about/resources/paper-js.gif';
 	 * raster.position = view.center;
-	 * 
+	 *
 	 * @example {@paperscript}
 	 * var raster = new Raster({
-	 * 	source: 'http://paperjs.org/about/resources/paper-js.gif',
-	 * 	position: view.center
+	 *     source: 'http://paperjs.org/about/resources/paper-js.gif',
+	 *     position: view.center
 	 * });
 	 */
 	getSource: function() {
@@ -298,13 +298,13 @@ var Raster = Item.extend(/** @lends Raster# */{
 			image;
 
 		function loaded() {
-			var view = that._project.view;
-			if (view)
+			var view = that.getView();
+			if (view) {
 				paper = view._scope;
-			that.setImage(image);
-			that.fire('load');
-			if (view)
+				that.setImage(image);
+				that.fire('load');
 				view.update();
+			}
 		}
 
 /*#*/ if (__options.environment == 'browser') {
@@ -314,7 +314,7 @@ var Raster = Item.extend(/** @lends Raster# */{
 		// IE has naturalWidth / Height defined, but width / height set to 0
 		// when the image is invisible in the document.
 		if (image.naturalWidth && image.naturalHeight) {
-			// Fire load event delayed, so behavior is the same as when it's 
+			// Fire load event delayed, so behavior is the same as when it's
 			// actually loaded and we give the code time to install event
 			setTimeout(loaded, 0);
 		} else {
@@ -335,7 +335,7 @@ var Raster = Item.extend(/** @lends Raster# */{
 			// Preserve the data in this._data since canvas-node eats it.
 			// TODO: Fix canvas-node instead
 			image.src = this._data = src;
-			// Fire load event delayed, so behavior is the same as when it's 
+			// Fire load event delayed, so behavior is the same as when it's
 			// actually loaded and we give the code time to install event
 			setTimeout(loaded, 0);
 		} else if (/^https?:\/\//.test(src)) {
@@ -489,7 +489,7 @@ var Raster = Item.extend(/** @lends Raster# */{
 		// If a path was passed, draw it as a clipping mask:
 		// See Project#draw() for an explanation of new Base()
 		if (path)
-			path.draw(ctx, new Base({ clip: true, transforms: [matrix] }));
+			path.draw(ctx, new Base({ clip: true, matrices: [matrix] }));
 		// Now draw the image clipped into it.
 		this._matrix.applyToContext(ctx);
 		ctx.drawImage(this.getElement(),

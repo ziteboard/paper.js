@@ -40,7 +40,7 @@ var Key = new function() {
 		224: 'command'  // Gecko command button
 	},
 
-	// Mark the special skeys that still can be interpreted as chars too
+	// Mark the special keys that still can be interpreted as chars too
 	specialChars = {
 		9: true, // tab
 		13: true, // enter
@@ -62,7 +62,7 @@ var Key = new function() {
 	// in onKeyDown/Up: keydown is used to store the downCode and handle
 	// modifiers and special keys such as arrows, space, etc, keypress fires the
 	// actual onKeyDown event and maps the keydown keyCode to the keypress
-	// charCode so keyup can do the right thing too.
+	// charCode so keyup can do the right.
 	charCodeMap = {}, // keyCode -> charCode mappings for pressed keys
 	keyMap = {}, // Map for currently pressed keys
 	downCode; // The last keyCode from keydown
@@ -107,10 +107,15 @@ var Key = new function() {
 			// If the keyCode is in keys, it needs to be handled by keydown and
 			// not in keypress after (arrows for example wont be triggering
 			// a keypress, but space would).
-			if (code in specialKeys) {
-				// No char code for special keys (except the ones listed in
-				// specialChars), but mark as pressed by setting to 0.
-				handleKey(true, code, code in specialChars ? code : 0, event);
+			// The same applies when pressing the command / meta key, as we
+			// won't get a keypress event for these combos.
+			if (code in specialKeys || modifiers.command) {
+				handleKey(true, code,
+						// No char code for special keys (except the ones listed
+						// in specialChars, or when pressing command modifier),
+						// but mark as pressed by setting to 0.
+						code in specialChars || modifiers.command ? code : 0,
+						event);
 				// Do not set downCode as we handled it already. Space would
 				// be handled twice otherwise, once here, once in keypress.
 			} else {
@@ -155,12 +160,12 @@ var Key = new function() {
 		 * // Whenever the user clicks, create a circle shaped path. If the
 		 * // 'a' key is pressed, fill it with red, otherwise fill it with blue:
 		 * function onMouseDown(event) {
-		 * 	var path = new Path.Circle(event.point, 10);
-		 * 	if (Key.isDown('a')) {
-		 * 		path.fillColor = 'red';
-		 * 	} else {
-		 * 		path.fillColor = 'blue';
-		 * 	}
+		 *     var path = new Path.Circle(event.point, 10);
+		 *     if (Key.isDown('a')) {
+		 *         path.fillColor = 'red';
+		 *     } else {
+		 *         path.fillColor = 'blue';
+		 *     }
 		 * }
 		 */
 		isDown: function(key) {

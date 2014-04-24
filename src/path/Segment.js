@@ -24,6 +24,7 @@
  */
 var Segment = Base.extend(/** @lends Segment# */{
 	_class: 'Segment',
+	beans: true,
 
 	/**
 	 * Creates a new Segment object.
@@ -60,18 +61,18 @@ var Segment = Base.extend(/** @lends Segment# */{
 	 * @example {@paperscript}
 	 * // Creating segments using object notation:
 	 * var firstSegment = new Segment({
-	 * 	point: [100, 50],
-	 * 	handleOut: [80, 100]
+	 *     point: [100, 50],
+	 *     handleOut: [80, 100]
 	 * });
-	 * 
+	 *
 	 * var secondSegment = new Segment({
-	 * 	point: [300, 50],
-	 * 	handleIn: [-80, -100]
+	 *     point: [300, 50],
+	 *     handleIn: [-80, -100]
 	 * });
-	 * 
+	 *
 	 * var path = new Path({
-	 * 	segments: [firstSegment, secondSegment],
-	 * 	strokeColor: 'black'
+	 *     segments: [firstSegment, secondSegment],
+	 *     strokeColor: 'black'
 	 * });
 	 */
 	/**
@@ -97,15 +98,15 @@ var Segment = Base.extend(/** @lends Segment# */{
 	 * var inY = -100;
 	 * var outX = 80;
 	 * var outY = 100;
-	 * 
+	 *
 	 * var x = 100;
 	 * var y = 50;
 	 * var firstSegment = new Segment(x, y, inX, inY, outX, outY);
-	 * 
+	 *
 	 * var x2 = 300;
 	 * var y2 = 50;
 	 * var secondSegment = new Segment( x2, y2, inX, inY, outX, outY);
-	 * 
+	 *
 	 * var path = new Path(firstSegment, secondSegment);
 	 * path.strokeColor = 'black';
 	 * @ignore
@@ -146,7 +147,8 @@ var Segment = Base.extend(/** @lends Segment# */{
 	_serialize: function(options) {
 		// If the Segment is linear, only serialize point, otherwise handles too
 		return Base.serialize(this.isLinear() ? this._point
-				: [this._point, this._handleIn, this._handleOut], options, true);
+				: [this._point, this._handleIn, this._handleOut],
+				options, true);
 	},
 
 	_changed: function(point) {
@@ -170,7 +172,7 @@ var Segment = Base.extend(/** @lends Segment# */{
 					&& (curveOut = curves[index]))
 				curveOut._changed();
 		}
-		path._changed(/*#=*/ Change.GEOMETRY);
+		path._changed(/*#=*/ Change.SEGMENTS);
 	},
 
 	/**
@@ -250,7 +252,7 @@ var Segment = Base.extend(/** @lends Segment# */{
 	// DOCS: #isColinear(segment), #isOrthogonal(), #isArc()
 
 	/**
-	 * Returns true if the the two segments are the beggining of two lines and
+	 * Returns true if the the two segments are the beginning of two lines and
 	 * if these two lines are running parallel.
 	 */
 	isColinear: function(segment) {
@@ -305,10 +307,10 @@ var Segment = Base.extend(/** @lends Segment# */{
 	 * @bean
 	 * @example {@paperscript}
 	 * var path = new Path.Circle({
-	 * 	center: [80, 50],
-	 * 	radius: 40
+	 *     center: [80, 50],
+	 *     radius: 40
 	 * });
-	 * 
+	 *
 	 * // Select the third segment point:
 	 * path.segments[2].selected = true;
 	 */
@@ -336,9 +338,9 @@ var Segment = Base.extend(/** @lends Segment# */{
 		} else {
 			state &= ~flag;
 		}
-		// Set the selectio state even if path is not defined yet, to allow
+		// Set the selection state even if path is not defined yet, to allow
 		// selected segments to be inserted into paths and make JSON
-		// deserialization work.  
+		// deserialization work.
 		this._selectionState = state;
 		// If the selection state of the segment has changed, we need to let
 		// it's path know and possibly add or remove it from
@@ -385,8 +387,9 @@ var Segment = Base.extend(/** @lends Segment# */{
 		var path = this._path,
 			index = this._index;
 		if (path) {
-			// The last segment of an open path belongs to the last curve
-			if (!path._closed && index == path._segments.length - 1)
+			// The last segment of an open path belongs to the last curve.
+			if (index > 0 && !path._closed
+					&& index === path._segments.length - 1)
 				index--;
 			return path.getCurves()[index] || null;
 		}
@@ -401,10 +404,10 @@ var Segment = Base.extend(/** @lends Segment# */{
 	 */
 	getLocation: function() {
 		var curve = this.getCurve();
-		// Determine whether the parameter for this segment is 0 or 1 based on
-		// whether there is a next curve or not, as #getNext() takes closed into
-		// account and all.
-		return curve ? new CurveLocation(curve, curve.getNext() ? 0 : 1) : null;
+		return curve
+				// Determine whether the parameter for this segment is 0 or 1.
+				? new CurveLocation(curve, this === curve._segment1 ? 0 : 1)
+				: null;
 	},
 
 	/**

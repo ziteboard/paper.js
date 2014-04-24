@@ -27,8 +27,8 @@ var Symbol = Base.extend(/** @lends Symbol# */{
 	 *
 	 * @param {Item} item the source item which is copied as the definition of
 	 *               the symbol
-	 * @param {Boolean} [dontCenter=false] 
-	 * 
+	 * @param {Boolean} [dontCenter=false]
+	 *
 	 * @example {@paperscript split=true height=240}
 	 * // Placing 100 instances of a symbol:
 	 * var path = new Path.Star(new Point(0, 0), 6, 5, 13);
@@ -94,10 +94,7 @@ var Symbol = Base.extend(/** @lends Symbol# */{
 	 */
 	_changed: function(flags) {
 		if (flags & /*#=*/ ChangeFlag.GEOMETRY) {
-			// Clear cached bounds of all items that this item contributes to.
-			// We don't call this on the parent, since we're already the parent
-			// of the child that modified the hierarchy (that's where these
-			// HIERARCHY notifications go)
+			// Clear cached bounds of all items that this symbol is linked to.
 			Item._clearBoundsCache(this);
 		}
 		if (flags & /*#=*/ ChangeFlag.APPEARANCE) {
@@ -116,7 +113,7 @@ var Symbol = Base.extend(/** @lends Symbol# */{
 	},
 
 	setDefinition: function(item, _dontCenter) {
-		// Make sure we're not steatling another symbol's definition
+		// Make sure we're not stealing another symbol's definition
 		if (item._parentSymbol)
 			item = item.clone();
 		// Remove previous definition's reference to this symbol

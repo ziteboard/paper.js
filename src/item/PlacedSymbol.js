@@ -39,12 +39,12 @@ var PlacedSymbol = Item.extend(/** @lends PlacedSymbol# */{
 	 * // Placing 100 instances of a symbol:
 	 * // Create a star shaped path at {x: 0, y: 0}:
 	 * var path = new Path.Star({
-	 * 	center: new Point(0, 0),
-	 * 	points: 6,
-	 * 	radius1: 5,
-	 * 	radius2: 13,
-	 * 	fillColor: 'white',
-	 * 	strokeColor: 'black'
+	 *     center: new Point(0, 0),
+	 *     points: 6,
+	 *     radius1: 5,
+	 *     radius2: 13,
+	 *     fillColor: 'white',
+	 *     strokeColor: 'black'
 	 * });
 	 *
 	 * // Create a symbol from the path:
@@ -115,8 +115,8 @@ var PlacedSymbol = Item.extend(/** @lends PlacedSymbol# */{
 				cacheItem);
 	},
 
-	_hitTest: function(point, options, matrix) {
-		var res = this._symbol._definition._hitTest(point, options, matrix);
+	_hitTest: function(point, options) {
+		var res = this._symbol._definition.hitTest(point, options);
 		// TODO: When the symbol's definition is a path, should hitResult
 		// contain information like HitResult#curve?
 		if (res)

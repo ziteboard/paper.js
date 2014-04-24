@@ -28,6 +28,10 @@
  */
 var CurveLocation = Base.extend(/** @lends CurveLocation# */{
 	_class: 'CurveLocation',
+	// Enforce creation of beans, as bean getters have hidden parameters.
+	// See #getSegment() below.
+	beans: true,
+
 	// DOCS: CurveLocation class description: add these back when the  mentioned
 	// functioned have been added: {@link Path#split(location)}
 	/**
@@ -73,8 +77,8 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
 				return null;
 			} else {
 				// Determine the closest segment by comparing curve lengths
-				this._segment = curve.getLength(0, parameter)
-					< curve.getLength(parameter, 1)
+				this._segment = curve.getPartLength(0, parameter)
+					< curve.getPartLength(parameter, 1)
 						? curve._segment1
 						: curve._segment2;
 			}
@@ -82,15 +86,8 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
 		return this._segment;
 	},
 
-	setSegment: function(segment) {
-		// NOTE: We only include this setter so the above getter can declare
-		// the _preferFirst parameter without having to hide it.
-		// See Strap.js beans conventions.
-		this._segment = segment;
-	},
-
 	/**
-	 * The curve by which the location is defined.
+	 * The curve that this location belongs to.
 	 *
 	 * @type Curve
 	 * @bean
@@ -107,11 +104,6 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
 				this._curve = this._segment2.getPrevious().getCurve();
 		}
 		return this._curve;
-	},
-
-	setCurve: function(curve) {
-		// See #setSegment()
-		this._curve = curve;
 	},
 
 	/**
@@ -180,7 +172,7 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
 	getCurveOffset: function() {
 		var curve = this.getCurve(),
 			parameter = this.getParameter();
-		return parameter != null && curve && curve.getLength(0, parameter);
+		return parameter != null && curve && curve.getPartLength(0, parameter);
 	},
 
 	/**
@@ -199,11 +191,6 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
 		return this._parameter;
 	},
 
-	setParameter: function(parameter) {
-		// See #setSegment()
-		this._parameter = parameter;
-	},
-
 	/**
 	 * The point which is defined by the {@link #curve} and
 	 * {@link #parameter}.
@@ -217,11 +204,6 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
 			this._point = curve && curve.getPointAt(this._parameter, true);
 		}
 		return this._point;
-	},
-
-	setPoint: function(point) {
-		// See #setSegment()
-		this._point = point;
 	},
 
 	/**

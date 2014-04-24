@@ -57,18 +57,18 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 *
 	 * @example {@paperscript}
 	 * var path = new Path({
-	 * 	segments: [[20, 20], [80, 80], [140, 20]],
-	 * 	fillColor: 'black',
-	 * 	closed: true
+	 *     segments: [[20, 20], [80, 80], [140, 20]],
+	 *     fillColor: 'black',
+	 *     closed: true
 	 * });
 	 *
 	 * @example {@paperscript}
 	 * var path = new Path({
-	 * 	segments: [[20, 20], [80, 80], [140, 20]],
-	 * 	strokeColor: 'red',
-	 * 	strokeWidth: 20,
-	 * 	strokeCap: 'round',
-	 * 	selected: true
+	 *     segments: [[20, 20], [80, 80], [140, 20]],
+	 *     strokeColor: 'red',
+	 *     strokeWidth: 20,
+	 *     strokeCap: 'round',
+	 *     selected: true
 	 * });
 	 */
 	/**
@@ -138,14 +138,19 @@ var Path = PathItem.extend(/** @lends Path# */{
 	_changed: function _changed(flags) {
 		_changed.base.call(this, flags);
 		if (flags & /*#=*/ ChangeFlag.GEOMETRY) {
-			// Clear cached native Path
-			(this._compound ? this._parent : this)._currentPath = undefined;
+			// The _currentPath is already cleared in Item, but clear it on the
+			// parent too, for children of CompoundPaths, and Groups (ab)used as
+			// clipping paths.
+			var parent = this._parent;
+			if (parent)
+				parent._currentPath = undefined;
 			// Clockwise state becomes undefined as soon as geometry changes.
 			this._length = this._clockwise = undefined;
-			// Curves are no longer valid
-			if (this._curves) {
+			// Only notify all curves if we're not told that only one Segment
+			// has changed and took already care of notifications.
+			if (this._curves && !(flags & /*#=*/ ChangeFlag.SEGMENTS)) {
 				for (var i = 0, l = this._curves.length; i < l; i++)
-					this._curves[i]._changed(/*#=*/ Change.GEOMETRY);
+					this._curves[i]._changed();
 			}
 			// Clear cached curves used for winding direction and containment
 			// calculation.
@@ -159,7 +164,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 	},
 
 	getStyle: function() {
-		// If this path is part of a CompoundPath, use the paren't style instead
+		// If this path is part of a compound-path, return the parent's style.
 		var parent = this._parent;
 		return (parent instanceof CompoundPath ? parent : this)._style;
 	},
@@ -250,51 +255,6 @@ var Path = PathItem.extend(/** @lends Path# */{
 	},
 
 	/**
-	 * The segments contained within the path, described as SVG style path data.
-	 *
-	 * @type String
-	 * @bean
-	 */
-	getPathData: function(precision) {
-		var segments = this._segments,
-			f = Formatter.instance,
-			parts = [];
-
-		// TODO: Add support for H/V and/or relative commands, where appropriate
-		// and resulting in shorter strings
-		function addCurve(seg1, seg2, skipLine) {
-			var point1 = seg1._point,
-				point2 = seg2._point,
-				handle1 = seg1._handleOut,
-				handle2 = seg2._handleIn;
-			if (handle1.isZero() && handle2.isZero()) {
-				if (!skipLine) {
-					// L = absolute lineto: moving to a point with drawing
-					parts.push('L' + f.point(point2, precision));
-				}
-			} else {
-				// c = relative curveto: handle1, handle2 + end - start,
-				// end - start
-				var end = point2.subtract(point1);
-				parts.push('c' + f.point(handle1, precision)
-						+ ' ' + f.point(end.add(handle2), precision)
-						+ ' ' + f.point(end, precision));
-			}
-		}
-
-		if (segments.length === 0)
-			return '';
-		parts.push('M' + f.point(segments[0]._point));
-		for (var i = 0, l = segments.length  - 1; i < l; i++)
-			addCurve(segments[i], segments[i + 1], false);
-		if (this._closed) {
-			addCurve(segments[segments.length - 1], segments[0], true);
-			parts.push('z');
-		}
-		return parts.join('');
-	},
-
-	/**
 	 * Specifies whether the path is closed. If it is closed, Paper.js connects
 	 * the first and last segments.
 	 *
@@ -327,9 +287,55 @@ var Path = PathItem.extend(/** @lends Path# */{
 					this._curves[length - 1] = new Curve(this,
 						this._segments[length - 1], this._segments[0]);
 			}
-			this._changed(/*#=*/ Change.GEOMETRY);
+			// Use SEGMENTS notification instead of GEOMETRY since curves are
+			// up-to-date and don't need notification.
+			this._changed(/*#=*/ Change.SEGMENTS);
 		}
-	},
+	}
+}, /** @lends Path# */{
+	// Enforce bean creation for getPathData(), as it has hidden parameters.
+	beans: true,
+
+	getPathData: function(_precision) {
+		// NOTE: #setPathData() is defined in PathItem.
+		var segments = this._segments,
+			f = Formatter.instance,
+			parts = [];
+
+		// TODO: Add support for H/V and/or relative commands, where appropriate
+		// and resulting in shorter strings
+		function addCurve(seg1, seg2, skipLine) {
+			var point1 = seg1._point,
+				point2 = seg2._point,
+				handle1 = seg1._handleOut,
+				handle2 = seg2._handleIn;
+			if (handle1.isZero() && handle2.isZero()) {
+				if (!skipLine) {
+					// L = absolute lineto: moving to a point with drawing
+					parts.push('L' + f.point(point2, _precision));
+				}
+			} else {
+				// c = relative curveto: handle1, handle2 + end - start,
+				// end - start
+				var end = point2.subtract(point1);
+				parts.push('c' + f.point(handle1, _precision)
+						+ ' ' + f.point(end.add(handle2), _precision)
+						+ ' ' + f.point(end, _precision));
+			}
+		}
+
+		if (segments.length === 0)
+			return '';
+		parts.push('M' + f.point(segments[0]._point));
+		for (var i = 0, l = segments.length  - 1; i < l; i++)
+			addCurve(segments[i], segments[i + 1], false);
+		if (this._closed) {
+			addCurve(segments[segments.length - 1], segments[0], true);
+			parts.push('z');
+		}
+		return parts.join('');
+	}
+}, /** @lends Path# */{
 
 	// TODO: Consider adding getSubPath(a, b), returning a part of the current
 	// path, with the added benefit that b can be < a, and closed looping is
@@ -414,7 +420,9 @@ var Path = PathItem.extend(/** @lends Path# */{
 			// Adjust segments for the curves before and after the removed ones
 			this._adjustCurves(from, to);
 		}
-		this._changed(/*#=*/ Change.GEOMETRY);
+		// Use SEGMENTS notification instead of GEOMETRY since curves are kept
+		// up-to-date by _adjustCurves() and don't need notification.
+		this._changed(/*#=*/ Change.SEGMENTS);
 		return segs;
 	},
 
@@ -463,7 +471,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * @example {@paperscript}
 	 * // Adding segments to a path using point objects:
 	 * var path = new Path({
-	 * 	strokeColor: 'black'
+	 *     strokeColor: 'black'
 	 * });
 	 *
 	 * // Add a segment at {x: 30, y: 75}
@@ -476,7 +484,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * @example {@paperscript}
 	 * // Adding segments to a path using arrays containing number pairs:
 	 * var path = new Path({
-	 * 	strokeColor: 'black'
+	 *     strokeColor: 'black'
 	 * });
 	 *
 	 * // Add a segment at {x: 30, y: 75}
@@ -489,7 +497,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * @example {@paperscript}
 	 * // Adding segments to a path using objects:
 	 * var path = new Path({
-	 * 	strokeColor: 'black'
+	 *     strokeColor: 'black'
 	 * });
 	 *
 	 * // Add a segment at {x: 30, y: 75}
@@ -502,7 +510,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * @example {@paperscript}
 	 * // Adding a segment with handles to a path:
 	 * var path = new Path({
-	 * 	strokeColor: 'black'
+	 *     strokeColor: 'black'
 	 * });
 	 *
 	 * path.add(new Point(30, 75));
@@ -590,7 +598,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * @example {@paperscript}
 	 * // Adding an array of Point objects:
 	 * var path = new Path({
-	 * 	strokeColor: 'black'
+	 *     strokeColor: 'black'
 	 * });
 	 * var points = [new Point(30, 50), new Point(170, 50)];
 	 * path.addSegments(points);
@@ -598,7 +606,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * @example {@paperscript}
 	 * // Adding an array of [x, y] arrays:
 	 * var path = new Path({
-	 * 	strokeColor: 'black'
+	 *     strokeColor: 'black'
 	 * });
 	 * var array = [[30, 75], [100, 20], [170, 75]];
 	 * path.addSegments(array);
@@ -607,7 +615,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * // Adding segments from one path to another:
 	 *
 	 * var path = new Path({
-	 * 	strokeColor: 'black'
+	 *     strokeColor: 'black'
 	 * });
 	 * path.addSegments([[30, 75], [100, 20], [170, 75]]);
 	 *
@@ -651,9 +659,9 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * // Create a circle shaped path at { x: 80, y: 50 }
 	 * // with a radius of 35:
 	 * var path = new Path.Circle({
-	 * 	center: new Point(80, 50),
-	 * 	radius: 35,
-	 * 	strokeColor: 'black'
+	 *     center: new Point(80, 50),
+	 *     radius: 35,
+	 *     strokeColor: 'black'
 	 * });
 	 *
 	 * // Remove its second segment:
@@ -688,9 +696,9 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * // Create a circle shaped path at { x: 80, y: 50 }
 	 * // with a radius of 35:
 	 * var path = new Path.Circle({
-	 * 	center: new Point(80, 50),
-	 * 	radius: 35,
-	 * 	strokeColor: 'black'
+	 *     center: new Point(80, 50),
+	 *     radius: 35,
+	 *     strokeColor: 'black'
 	 * });
 	 *
 	 * // Remove the segments from index 1 till index 2:
@@ -738,7 +746,9 @@ var Path = PathItem.extend(/** @lends Path# */{
 			// Adjust segments for the curves before and after the removed ones
 			this._adjustCurves(index, index);
 		}
-		this._changed(/*#=*/ Change.GEOMETRY);
+		// Use SEGMENTS notification instead of GEOMETRY since curves are kept
+		// up-to-date by _adjustCurves() and don't need notification.
+		this._changed(/*#=*/ Change.SEGMENTS);
 		return removed;
 	},
 
@@ -764,16 +774,16 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * @example {@paperscript}
 	 * // Selecting an item:
 	 * var path = new Path.Circle({
-	 * 	center: new Size(80, 50),
-	 * 	radius: 35
+	 *     center: new Size(80, 50),
+	 *     radius: 35
 	 * });
 	 * path.selected = true; // Select the path
 	 *
 	 * @example {@paperscript}
 	 * // A path is selected, if one or more of its segments is selected:
 	 * var path = new Path.Circle({
-	 * 	center: new Size(80, 50),
-	 * 	radius: 35
+	 *     center: new Size(80, 50),
+	 *     radius: 35
 	 * });
 	 *
 	 * // Select the second segment of the path:
@@ -781,12 +791,12 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 *
 	 * // If the path is selected (which it is), set its fill color to red:
 	 * if (path.selected) {
-	 * 	path.fillColor = 'red';
+	 *     path.fillColor = 'red';
 	 * }
 	 *
 	 */
 	/**
-	 * Specifies whether the path and all its segments are selected. Cannot be 
+	 * Specifies whether the path and all its segments are selected. Cannot be
 	 * {@code true} on an empty path.
 	 *
 	 * @type Boolean
@@ -795,14 +805,14 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * @example {@paperscript}
 	 * // A path is fully selected, if all of its segments are selected:
 	 * var path = new Path.Circle({
-	 * 	center: new Size(80, 50),
-	 * 	radius: 35
+	 *     center: new Size(80, 50),
+	 *     radius: 35
 	 * });
 	 * path.fullySelected = true;
 	 *
 	 * var path2 = new Path.Circle({
-	 * 	center: new Size(180, 50),
-	 * 	radius: 35
+	 *     center: new Size(180, 50),
+	 *     radius: 35
 	 * });
 	 *
 	 * // Deselect the second segment of the second path:
@@ -811,14 +821,14 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * // If the path is fully selected (which it is),
 	 * // set its fill color to red:
 	 * if (path.fullySelected) {
-	 * 	path.fillColor = 'red';
+	 *     path.fillColor = 'red';
 	 * }
 	 *
 	 * // If the second path is fully selected (which it isn't, since we just
 	 * // deselected its second segment),
 	 * // set its fill color to red:
 	 * if (path2.fullySelected) {
-	 * 	path2.fillColor = 'red';
+	 *     path2.fillColor = 'red';
 	 * }
 	 */
 	isFullySelected: function() {
@@ -875,8 +885,8 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * // Create a circle shaped path at { x: 80, y: 50 }
 	 * // with a radius of 35:
 	 * var path = new Path.Circle({
-	 * 	center: new Size(80, 50),
-	 * 	radius: 35
+	 *     center: new Size(80, 50),
+	 *     radius: 35
 	 * });
 	 *
 	 * // Select the path, so we can inspect its segments:
@@ -933,31 +943,31 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 *
 	 * var path;
 	 * function onMouseDown(event) {
-	 * 	// If we already made a path before, deselect it:
-	 * 	if (path) {
-	 * 		path.selected = false;
-	 * 	}
-	 * 
-	 * 	// Create a new path and add the position of the mouse
-	 * 	// as its first segment. Select it, so we can see the
-	 * 	// segment points:
-	 * 	path = new Path({
-	 * 		segments: [event.point],
-	 * 		strokeColor: 'black',
-	 * 		selected: true
-	 * 	});
+	 *     // If we already made a path before, deselect it:
+	 *     if (path) {
+	 *         path.selected = false;
+	 *     }
+	 *
+	 *     // Create a new path and add the position of the mouse
+	 *     // as its first segment. Select it, so we can see the
+	 *     // segment points:
+	 *     path = new Path({
+	 *         segments: [event.point],
+	 *         strokeColor: 'black',
+	 *         selected: true
+	 *     });
 	 * }
-	 * 
+	 *
 	 * function onMouseDrag(event) {
-	 * 	// On every drag event, add a segment to the path
-	 * 	// at the position of the mouse:
-	 * 	path.add(event.point);
+	 *     // On every drag event, add a segment to the path
+	 *     // at the position of the mouse:
+	 *     path.add(event.point);
 	 * }
-	 * 
+	 *
 	 * function onMouseUp(event) {
-	 * 	// When the mouse is released, simplify the path:
-	 * 	path.simplify();
-	 * 	path.selected = true;
+	 *     // When the mouse is released, simplify the path:
+	 *     path.simplify();
+	 *     path.selected = true;
 	 * }
 	 */
 	simplify: function(tolerance) {
@@ -972,42 +982,42 @@ var Path = PathItem.extend(/** @lends Path# */{
 	/**
 	 * Splits the path at the given offset. After splitting, the path will be
 	 * open. If the path was open already, splitting will result in two paths.
-	 * 
+	 *
 	 * @name Path#split
 	 * @function
 	 * @param {Number} offset the offset at which to split the path
 	 * as a number between 0 and {@link Path#length}
 	 * @return {Path} the newly created path after splitting, if any
-	 * 
+	 *
 	 * @example {@paperscript} // Splitting an open path
 	 * var path = new Path();
 	 * path.strokeColor = 'black';
 	 * path.add(20, 20);
-	 * 
+	 *
 	 * // Add an arc through {x: 90, y: 80} to {x: 160, y: 20}
 	 * path.arcTo([90, 80], [160, 20]);
-	 * 
+	 *
 	 * // Split the path at 30% of its length:
 	 * var path2 = path.split(path.length * 0.3);
 	 * path2.strokeColor = 'red';
-	 * 
+	 *
 	 * // Move the newly created path 40px to the right:
 	 * path2.position.x += 40;
-	 * 
+	 *
 	 * @example {@paperscript} // Splitting a closed path
 	 * var path = new Path.Rectangle({
-	 * 	from: [20, 20],
-	 * 	to: [80, 80],
-	 * 	strokeColor: 'black'
+	 *     from: [20, 20],
+	 *     to: [80, 80],
+	 *     strokeColor: 'black'
 	 * });
-	 * 
+	 *
 	 * // Split the path at 60% of its length:
 	 * path.split(path.length * 0.6);
-	 * 
+	 *
 	 * // Move the first segment, to show where the path
 	 * // was split:
 	 * path.firstSegment.point.x += 20;
-	 * 
+	 *
 	 * // Select the first segment:
 	 * path.firstSegment.selected = true;
 	 */
@@ -1015,27 +1025,27 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * Splits the path at the given curve location. After splitting, the path
 	 * will be open. If the path was open already, splitting will result in two
 	 * paths.
-	 * 
+	 *
 	 * @name Path#split
 	 * @function
 	 * @param {CurveLocation} location the curve location at which to split
 	 * the path
 	 * @return {Path} the newly created path after splitting, if any
-	 * 
+	 *
 	 * @example {@paperscript}
 	 * var path = new Path.Circle({
-	 * 	center: view.center,
-	 * 	radius: 40,
-	 * 	strokeColor: 'black'
+	 *     center: view.center,
+	 *     radius: 40,
+	 *     strokeColor: 'black'
 	 * });
-	 * 
+	 *
 	 * var pointOnCircle = view.center + {
-	 * 	length: 40,
-	 * 	angle: 30
+	 *     length: 40,
+	 *     angle: 30
 	 * };
-	 * 
+	 *
 	 * var curveLocation = path.getNearestLocation(pointOnCircle);
-	 * 
+	 *
 	 * path.split(curveLocation);
 	 * path.lastSegment.selected = true;
 	 */
@@ -1043,37 +1053,37 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * Splits the path at the given curve index and parameter. After splitting,
 	 * the path will be open. If the path was open already, splitting will
 	 * result in two paths.
-	 * 
+	 *
 	 * @example {@paperscript} // Splitting an open path
 	 * // Draw a V shaped path:
 	 * var path = new Path([20, 20], [50, 80], [80, 20]);
 	 * path.strokeColor = 'black';
-	 * 
+	 *
 	 * // Split the path half-way down its second curve:
 	 * var path2 = path.split(1, 0.5);
-	 * 
+	 *
 	 * // Give the resulting path a red stroke-color
 	 * // and move it 20px to the right:
 	 * path2.strokeColor = 'red';
 	 * path2.position.x += 20;
-	 * 
+	 *
 	 * @example {@paperscript} // Splitting a closed path
 	 * var path = new Path.Rectangle({
-	 * 	from: [20, 20],
-	 * 	to: [80, 80],
-	 * 	strokeColor: 'black'
+	 *     from: [20, 20],
+	 *     to: [80, 80],
+	 *     strokeColor: 'black'
 	 * });
-	 * 
+	 *
 	 * // Split the path half-way down its second curve:
 	 * path.split(2, 0.5);
-	 * 
+	 *
 	 * // Move the first segment, to show where the path
 	 * // was split:
 	 * path.firstSegment.point.x += 20;
-	 * 
+	 *
 	 * // Select the first segment:
 	 * path.firstSegment.selected = true;
-	 * 
+	 *
 	 * @param {Number} index the index of the curve in the {@link Path#curves}
 	 * array at which to split
 	 * @param {Number} parameter the parameter at which the curve will be split
@@ -1109,7 +1119,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 			// parameter, which are removed from the current path. Pass true
 			// for includeCurves, since we want to preserve and move them to
 			// the new path through _add(), allowing us to have CurveLocation
-			// keep the connection to the new path through moved curves. 
+			// keep the connection to the new path through moved curves.
 			var segs = this.removeSegments(index, this._segments.length, true),
 				path;
 			if (this._closed) {
@@ -1120,7 +1130,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 				// will happen below.
 				path = this;
 			} else if (index > 0) {
-				// Pass true for _preserve, in case of CompoundPath, to avoid 
+				// Pass true for _preserve, in case of CompoundPath, to avoid
 				// reversing of path direction, which would mess with segs!
 				// Use _clone to copy over all other attributes, including style
 				path = this._clone(new Path().insertAbove(this, true));
@@ -1175,9 +1185,12 @@ var Path = PathItem.extend(/** @lends Path# */{
 		// Flip clockwise state if it's defined
 		if (this._clockwise !== undefined)
 			this._clockwise = !this._clockwise;
+		this._changed(/*#=*/ ChangeFlag.GEOMETRY);
 	},
 
-	// DOCS: document Path#join in more detail.
+	// DOCS: document Path#join(path) in more detail.
+	// DOCS: document Path#join() (joining with itself)
+	// TODO: Consider adding a distance / tolerance parameter for merging.
 	/**
 	 * Joins the path with the specified path, which will be removed in the
 	 * process.
@@ -1187,15 +1200,15 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * @example {@paperscript}
 	 * // Joining two paths:
 	 * var path = new Path({
-	 * 	segments: [[30, 25], [30, 75]],
-	 * 	strokeColor: 'black'
+	 *     segments: [[30, 25], [30, 75]],
+	 *     strokeColor: 'black'
 	 * });
-	 * 
+	 *
 	 * var path2 = new Path({
-	 * 	segments: [[200, 25], [200, 75]],
-	 * 	strokeColor: 'black'
+	 *     segments: [[200, 25], [200, 75]],
+	 *     strokeColor: 'black'
 	 * });
-	 * 
+	 *
 	 * // Join the paths:
 	 * path.join(path2);
 	 *
@@ -1203,43 +1216,43 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * // Joining two paths that share a point at the start or end of their
 	 * // segments array:
 	 * var path = new Path({
-	 * 	segments: [[30, 25], [30, 75]],
-	 * 	strokeColor: 'black'
+	 *     segments: [[30, 25], [30, 75]],
+	 *     strokeColor: 'black'
 	 * });
-	 * 
+	 *
 	 * var path2 = new Path({
-	 * 	segments: [[30, 25], [80, 25]],
-	 * 	strokeColor: 'black'
+	 *     segments: [[30, 25], [80, 25]],
+	 *     strokeColor: 'black'
 	 * });
-	 * 
+	 *
 	 * // Join the paths:
 	 * path.join(path2);
-	 * 
+	 *
 	 * // After joining, path with have 3 segments, since it
 	 * // shared its first segment point with the first
 	 * // segment point of path2.
-	 * 
+	 *
 	 * // Select the path to show that they have joined:
 	 * path.selected = true;
 	 *
 	 * @example {@paperscript}
 	 * // Joining two paths that connect at two points:
 	 * var path = new Path({
-	 * 	segments: [[30, 25], [80, 25], [80, 75]],
-	 * 	strokeColor: 'black'
+	 *     segments: [[30, 25], [80, 25], [80, 75]],
+	 *     strokeColor: 'black'
 	 * });
-	 * 
+	 *
 	 * var path2 = new Path({
-	 * 	segments: [[30, 25], [30, 75], [80, 75]],
-	 * 	strokeColor: 'black'
+	 *     segments: [[30, 25], [30, 75], [80, 75]],
+	 *     strokeColor: 'black'
 	 * });
-	 * 
+	 *
 	 * // Join the paths:
 	 * path.join(path2);
-	 * 
+	 *
 	 * // Because the paths were joined at two points, the path is closed
 	 * // and has 4 segments.
-	 * 
+	 *
 	 * // Select the path to show that they have joined:
 	 * path.selected = true;
 	 */
@@ -1271,19 +1284,18 @@ var Path = PathItem.extend(/** @lends Path# */{
 			if (path.closed)
 				this._add([segments[0]]);
 			path.remove();
-			// Close if they touch in both places. Fetch the segments again
-			// since they may have changed.
-			first1 = this.getFirstSegment();
-			last1 = this.getLastSegment();
-			if (last1._point.equals(first1._point)) {
-				first1.setHandleIn(last1._handleIn);
-				last1.remove();
-				this.setClosed(true);
-			}
-			this._changed(/*#=*/ Change.GEOMETRY);
-			return true;
 		}
-		return false;
+		// Close the resulting path and merge first and last segment if they
+		// touch, meaning the touched at path ends. Also do this if no path
+		// argument was provided, in which cases the path is joined with itself
+		// only if its ends touch.
+		var first = this.getFirstSegment(),
+			last = this.getLastSegment();
+		if (first !== last && first._point.equals(last._point)) {
+			first.setHandleIn(last._handleIn);
+			last.remove();
+			this.setClosed(true);
+		}
 	},
 
 	/**
@@ -1324,8 +1336,11 @@ var Path = PathItem.extend(/** @lends Path# */{
 				offset = 0;
 			for (var i = 0; i < index; i++)
 				offset += curves[i].getLength();
-			var curve = curves[index];
-			return offset + curve.getLength(0, location.getParameter());
+			var curve = curves[index],
+				parameter = location.getParameter();
+			if (parameter > 0)
+				offset += curve.getPartLength(0, parameter);
+			return offset;
 		}
 		return null;
 	},
@@ -1392,24 +1407,24 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 *
 	 * // Create an arc shaped path:
 	 * var path = new Path({
-	 * 	strokeColor: 'black'
+	 *     strokeColor: 'black'
 	 * });
-	 * 
+	 *
 	 * path.add(new Point(40, 100));
 	 * path.arcTo(new Point(150, 100));
-	 * 
+	 *
 	 * // We're going to be working with a third of the length
 	 * // of the path as the offset:
 	 * var offset = path.length / 3;
-	 * 
+	 *
 	 * // Find the point on the path:
 	 * var point = path.getPointAt(offset);
-	 * 
+	 *
 	 * // Create a small circle shaped path at the point:
 	 * var circle = new Path.Circle({
-	 * 	center: point,
-	 * 	radius: 3,
-	 * 	fillColor: 'red'
+	 *     center: point,
+	 *     radius: 3,
+	 *     fillColor: 'red'
 	 * });
 	 *
 	 * @example {@paperscript height=150}
@@ -1417,7 +1432,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 *
 	 * // Create an arc shaped path:
 	 * var path = new Path({
-	 * 	strokeColor: 'black'
+	 *     strokeColor: 'black'
 	 * });
 	 *
 	 * path.add(new Point(40, 100));
@@ -1426,17 +1441,17 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * var amount = 5;
 	 * var length = path.length;
 	 * for (var i = 0; i < amount + 1; i++) {
-	 * 	var offset = i / amount * length;
+	 *     var offset = i / amount * length;
 	 *
-	 * 	// Find the point on the path at the given offset:
-	 * 	var point = path.getPointAt(offset);
+	 *     // Find the point on the path at the given offset:
+	 *     var point = path.getPointAt(offset);
 	 *
-	 * 	// Create a small circle shaped path at the point:
-	 * 	var circle = new Path.Circle({
-	 * 		center: point,
-	 * 		radius: 3,
-	 * 		fillColor: 'red'
-	 * 	});
+	 *     // Create a small circle shaped path at the point:
+	 *     var circle = new Path.Circle({
+	 *         center: point,
+	 *         radius: 3,
+	 *         fillColor: 'red'
+	 *     });
 	 * }
 	 */
 	getPointAt: function(offset, isParameter) {
@@ -1456,7 +1471,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 *
 	 * // Create an arc shaped path:
 	 * var path = new Path({
-	 * 	strokeColor: 'black'
+	 *     strokeColor: 'black'
 	 * });
 	 *
 	 * path.add(new Point(40, 100));
@@ -1476,8 +1491,8 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * tangent.length = 60;
 	 *
 	 * var line = new Path({
-	 * 	segments: [point, point + tangent],
-	 * 	strokeColor: 'red'
+	 *     segments: [point, point + tangent],
+	 *     strokeColor: 'red'
 	 * })
 	 *
 	 * @example {@paperscript height=200}
@@ -1485,7 +1500,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 *
 	 * // Create an arc shaped path:
 	 * var path = new Path({
-	 * 	strokeColor: 'black'
+	 *     strokeColor: 'black'
 	 * });
 	 *
 	 * path.add(new Point(40, 100));
@@ -1494,21 +1509,21 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * var amount = 6;
 	 * var length = path.length;
 	 * for (var i = 0; i < amount + 1; i++) {
-	 * 	var offset = i / amount * length;
+	 *     var offset = i / amount * length;
 	 *
-	 * 	// Find the point on the path at the given offset:
-	 * 	var point = path.getPointAt(offset);
+	 *     // Find the point on the path at the given offset:
+	 *     var point = path.getPointAt(offset);
 	 *
-	 * 	// Find the normal vector on the path at the given offset:
-	 * 	var tangent = path.getTangentAt(offset);
+	 *     // Find the normal vector on the path at the given offset:
+	 *     var tangent = path.getTangentAt(offset);
 	 *
-	 * 	// Make the tangent vector 60pt long:
-	 * 	tangent.length = 60;
+	 *     // Make the tangent vector 60pt long:
+	 *     tangent.length = 60;
 	 *
-	 * 	var line = new Path({
-	 * 		segments: [point, point + tangent],
-	 * 		strokeColor: 'red'
-	 * 	})
+	 *     var line = new Path({
+	 *         segments: [point, point + tangent],
+	 *         strokeColor: 'red'
+	 *     })
 	 * }
 	 */
 	getTangentAt: function(offset, isParameter) {
@@ -1528,7 +1543,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 *
 	 * // Create an arc shaped path:
 	 * var path = new Path({
-	 * 	strokeColor: 'black'
+	 *     strokeColor: 'black'
 	 * });
 	 *
 	 * path.add(new Point(40, 100));
@@ -1548,8 +1563,8 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * normal.length = 30;
 	 *
 	 * var line = new Path({
-	 * 	segments: [point, point + normal],
-	 * 	strokeColor: 'red'
+	 *     segments: [point, point + normal],
+	 *     strokeColor: 'red'
 	 * });
 	 *
 	 * @example {@paperscript height=200}
@@ -1557,7 +1572,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 *
 	 * // Create an arc shaped path:
 	 * var path = new Path({
-	 * 	strokeColor: 'black'
+	 *     strokeColor: 'black'
 	 * });
 	 *
 	 * path.add(new Point(40, 100));
@@ -1566,21 +1581,21 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * var amount = 10;
 	 * var length = path.length;
 	 * for (var i = 0; i < amount + 1; i++) {
-	 * 	var offset = i / amount * length;
+	 *     var offset = i / amount * length;
 	 *
-	 * 	// Find the point on the path at the given offset:
-	 * 	var point = path.getPointAt(offset);
+	 *     // Find the point on the path at the given offset:
+	 *     var point = path.getPointAt(offset);
 	 *
-	 * 	// Find the normal vector on the path at the given offset:
-	 * 	var normal = path.getNormalAt(offset);
+	 *     // Find the normal vector on the path at the given offset:
+	 *     var normal = path.getNormalAt(offset);
 	 *
-	 * 	// Make the normal vector 30pt long:
-	 * 	normal.length = 30;
+	 *     // Make the normal vector 30pt long:
+	 *     normal.length = 30;
 	 *
-	 * 	var line = new Path({
-	 * 		segments: [point, point + normal],
-	 * 		strokeColor: 'red'
-	 * 	});
+	 *     var line = new Path({
+	 *         segments: [point, point + normal],
+	 *         strokeColor: 'red'
+	 *     });
 	 * }
 	 */
 	getNormalAt: function(offset, isParameter) {
@@ -1618,29 +1633,29 @@ var Path = PathItem.extend(/** @lends Path# */{
 	 * @param point {Point} the point for which we search the nearest point
 	 * @return {Point} the point on the path that's the closest to the specified
 	 * point
-	 * 
+	 *
 	 * @example {@paperscript height=200}
 	 * var star = new Path.Star({
-	 * 	center: view.center,
-	 * 	points: 10,
-	 * 	radius1: 30,
-	 * 	radius2: 60,
-	 * 	strokeColor: 'black'
+	 *     center: view.center,
+	 *     points: 10,
+	 *     radius1: 30,
+	 *     radius2: 60,
+	 *     strokeColor: 'black'
 	 * });
-	 * 
+	 *
 	 * var circle = new Path.Circle({
-	 * 	center: view.center,
-	 * 	radius: 3,
-	 * 	fillColor: 'red'
+	 *     center: view.center,
+	 *     radius: 3,
+	 *     fillColor: 'red'
 	 * });
-	 * 
+	 *
 	 * function onMouseMove(event) {
-	 * 	// Get the nearest point from the mouse position
-	 * 	// to the star shaped path:
-	 * 	var nearestPoint = star.getNearestPoint(event.point);
-	 * 
-	 * 	// Move the red circle to the nearest point:
-	 * 	circle.position = nearestPoint;
+	 *     // Get the nearest point from the mouse position
+	 *     // to the star shaped path:
+	 *     var nearestPoint = star.getNearestPoint(event.point);
+	 *
+	 *     // Move the red circle to the nearest point:
+	 *     circle.position = nearestPoint;
 	 * }
 	 */
 	getNearestPoint: function(point) { // TODO: Fix argument assignment!
@@ -1739,6 +1754,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 		var that = this,
 			style = this.getStyle(),
 			segments = this._segments,
+			numSegments = segments.length,
 			closed = this._closed,
 			// transformed tolerance padding, see Item#hitTest. We will add
 			// stroke padding on top if stroke is defined.
@@ -1746,13 +1762,17 @@ var Path = PathItem.extend(/** @lends Path# */{
 			strokePadding = tolerancePadding,
 			join, cap, miterLimit,
 			area, loc, res,
-			hasStroke = options.stroke && style.hasStroke(),
-			hasFill = options.fill && style.hasFill(),
-			radius = hasStroke ? style.getStrokeWidth() / 2
-					// Set radius to 0 so when we're hit-testing, the tolerance
-					// is used for fill too, through stroke functionality.
-					: hasFill ? 0 : null;
-		if (radius != null) {
+			hitStroke = options.stroke && style.hasStroke(),
+			hitFill = options.fill && style.hasFill(),
+			hitCurves = options.curves,
+			radius = hitStroke
+					? style.getStrokeWidth() / 2
+					// Set radius to 0 when we're hit-testing fills with
+					// tolerance, to handle tolerance  through stroke hit-test
+					// functionality. Also use 0 when hit-testing curves.
+					: hitFill && options.tolerance > 0 || hitCurves
+						? 0 : null;
+		if (radius !== null) {
 			if (radius > 0) {
 				join = style.getStrokeJoin();
 				cap = style.getStrokeCap();
@@ -1809,10 +1829,10 @@ var Path = PathItem.extend(/** @lends Path# */{
 				// to run the hit-test on it.
 				area = new Path({ internal: true, closed: true });
 				if (closed || segment._index > 0
-						&& segment._index < segments.length - 1) {
+						&& segment._index < numSegments - 1) {
 					// It's a join. See that it's not a round one (one of
 					// the handles has to be zero too for this!)
-					if (join !== 'round' && (segment._handleIn.isZero() 
+					if (join !== 'round' && (segment._handleIn.isZero()
 							|| segment._handleOut.isZero()))
 						// _addBevelJoin() handles both 'bevel' and 'miter'!
 						Path._addBevelJoin(segment, join, radius, miterLimit,
@@ -1840,22 +1860,25 @@ var Path = PathItem.extend(/** @lends Path# */{
 		// before stroke or fill.
 		if (options.ends && !options.segments && !closed) {
 			if (res = checkSegmentPoints(segments[0], true)
-					|| checkSegmentPoints(segments[segments.length - 1], true))
+					|| checkSegmentPoints(segments[numSegments - 1], true))
 				return res;
 		} else if (options.segments || options.handles) {
-			for (var i = 0, l = segments.length; i < l; i++)
+			for (var i = 0; i < numSegments; i++)
 				if (res = checkSegmentPoints(segments[i]))
 					return res;
 		}
 		// If we're querying for stroke, perform that before fill
-		if (radius != null) {
+		if (radius !== null) {
 			loc = this.getNearestLocation(point);
+			// Note that paths need at least two segments to have an actual
+			// stroke. But we still check for segments with the radius fallback
+			// check if there is only one segment.
 			if (loc) {
 				// Now see if we're on a segment, and if so, check for its
 				// stroke join / cap first. If not, do a normal radius check
 				// for round strokes.
 				var parameter = loc.getParameter();
-				if (parameter === 0 || parameter === 1) {
+				if (parameter === 0 || parameter === 1 && numSegments > 1) {
 					if (!checkSegmentStroke(loc.getSegment()))
 						loc = null;
 				} else  if (!isCloseEnough(loc.getPoint(), strokePadding)) {
@@ -1864,8 +1887,8 @@ var Path = PathItem.extend(/** @lends Path# */{
 			}
 			// If we have miter joins, we may not be done yet, since they can be
 			// longer than the radius. Check for each segment within reach now.
-			if (!loc && join === 'miter') {
-				for (var i = 0, l = segments.length; i < l; i++) {
+			if (!loc && join === 'miter' && numSegments > 1) {
+				for (var i = 0; i < numSegments; i++) {
 					var segment = segments[i];
 					if (point.getDistance(segment._point) <= miterLimit
 							&& checkSegmentStroke(segment)) {
@@ -1878,16 +1901,17 @@ var Path = PathItem.extend(/** @lends Path# */{
 		// Don't process loc yet, as we also need to query for stroke after fill
 		// in some cases. Simply skip fill query if we already have a matching
 		// stroke. If we have a loc and no stroke then it's a result for fill.
-		return !loc && hasFill && this._contains(point) || loc && !hasStroke
-				? new HitResult('fill', this)
-				: loc
-					? new HitResult('stroke', this, {
-						location: loc,
-						// It's fine performance wise to call getPoint() again
-						// since it was already called before.
-						point: loc.getPoint()
-					})
-					: null;
+		return !loc && hitFill && this._contains(point)
+				|| loc && !hitStroke && !hitCurves
+					? new HitResult('fill', this)
+					: loc
+						? new HitResult(hitStroke ? 'stroke' : 'curve', this, {
+							location: loc,
+							// It's fine performance wise to call getPoint()
+							// again since it was already called before.
+							point: loc.getPoint()
+						})
+						: null;
 	}
 
 	// TODO: intersects(item)
@@ -2010,10 +2034,9 @@ var Path = PathItem.extend(/** @lends Path# */{
 
 	return {
 		_draw: function(ctx, param) {
-			var clip = param.clip,
-				// Also mark this Path as _compound so _changed() knows about it
-				compound = this._compound = param.compound;
-			if (!compound)
+			var dontStart = param.dontStart,
+				dontPaint = param.dontFinish || param.clip;
+			if (!dontStart)
 				ctx.beginPath();
 
 			var style = this.getStyle(),
@@ -2025,25 +2048,25 @@ var Path = PathItem.extend(/** @lends Path# */{
 						&& dashArray && dashArray.length;
 
 			function getOffset(i) {
-				// Negative modulo is necessary since we're stepping back 
+				// Negative modulo is necessary since we're stepping back
 				// in the dash sequence first.
 				return dashArray[((i % dashLength) + dashLength) % dashLength];
 			}
 
-			if (this._currentPath) {
+			if (!dontStart && this._currentPath) {
 				ctx.currentPath = this._currentPath;
-			} else if (hasFill || hasStroke && !dashLength || compound || clip){
+			} else if (hasFill || hasStroke && !dashLength || dontPaint) {
 				// Prepare the canvas path if we have any situation that
 				// requires it to be defined.
 				drawSegments(ctx, this);
 				if (this._closed)
 					ctx.closePath();
 				// CompoundPath collects its own _currentPath
-				if (!compound)
+				if (!dontStart)
 					this._currentPath = ctx.currentPath;
 			}
 
-			if (!clip && !compound && (hasFill || hasStroke)) {
+			if (!dontPaint && (hasFill || hasStroke)) {
 				// If the path is part of a compound path or doesn't have a fill
 				// or stroke, there is no need to continue.
 				this._setStyles(ctx);
@@ -2061,7 +2084,8 @@ var Path = PathItem.extend(/** @lends Path# */{
 						// NOTE: We don't cache this path in another currentPath
 						// since browsers that support currentPath also support
 						// native dashes.
-						ctx.beginPath();
+						if (!dontStart)
+							ctx.beginPath();
 						var flattener = new PathFlattener(this),
 							length = flattener.length,
 							from = -style.getDashOffset(), to,
@@ -2110,7 +2134,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 		// are considered abstract methods of PathItem and need to be defined in
 		// all implementing classes.
 		moveTo: function(/* point */) {
-			// moveTo should only be called at the beginning of paths. But it 
+			// moveTo should only be called at the beginning of paths. But it
 			// can ce called again if there is nothing drawn yet, in which case
 			// the first segment gets readjusted.
 			var segments = this._segments;
@@ -2176,7 +2200,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 		},
 
 		arcTo: function(/* to, clockwise | through, to
-				| to, radius, rotation, large, sweep */) {
+				| to, radius, rotation, clockwise, large */) {
 			// Get the start point:
 			var current = getCurrentSegment(this),
 				from = current._point,
@@ -2199,7 +2223,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 				through = to;
 				to = Point.read(arguments);
 			} else {
-				// #3: arcTo(to, radius, rotation, large, sweep)
+				// #3: arcTo(to, radius, rotation, clockwise, large)
 				// Drawing arcs in SVG style:
 				var radius = Size.read(arguments);
 				// If rx = 0 or ry = 0 then this arc is treated as a
@@ -2209,8 +2233,8 @@ var Path = PathItem.extend(/** @lends Path# */{
 				// See for an explanation of the following calculations:
 				// http://www.w3.org/TR/SVG/implnote.html#ArcImplementationNotes
 				var rotation = Base.read(arguments),
+					clockwise = !!Base.read(arguments),
 					large = !!Base.read(arguments),
-					sweep = !!Base.read(arguments),
 					middle = from.add(to).divide(2),
 					pt = from.subtract(middle).rotate(-rotation),
 					x = pt.x,
@@ -2240,22 +2264,23 @@ var Path = PathItem.extend(/** @lends Path# */{
 							'Cannot create an arc with the given arguments');
 				center = new Point(rx * y / ry, -ry * x / rx)
 						// "...where the + sign is chosen if fA != fS,
-						// and the − sign is chosen if fA = fS."
-						.multiply((large == sweep ? -1 : 1) * Math.sqrt(factor))
+						// and the - sign is chosen if fA = fS."
+						.multiply((large === clockwise ? -1 : 1)
+							* Math.sqrt(factor))
 						.rotate(rotation).add(middle);
 				// Now create a matrix that maps the unit circle to the ellipse,
 				// for easier construction below.
 				matrix = new Matrix().translate(center).rotate(rotation)
 						.scale(rx, ry);
 				// Transform from and to to the unit circle coordinate space
-				// and calculcate start vector and extend from there.
+				// and calculate start vector and extend from there.
 				vector = matrix._inverseTransform(from);
 				extent = vector.getDirectedAngle(matrix._inverseTransform(to));
-				// "...in other words, if sweep = 0 and extent is > 0, subtract
-				// 360, whereas if sweep = 1 and extent < 0, then add 360."
-				if (!sweep && extent > 0)
+				// "...if fS = 0 and extent is > 0, then subtract 360, whereas
+				// if fS = 1 and extend is < 0, then add 360."
+				if (!clockwise && extent > 0)
 					extent -= 360;
-				else if (sweep && extent < 0)
+				else if (clockwise && extent < 0)
 					extent += 360;
 			}
 			if (through) {
@@ -2293,7 +2318,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 					// If the center is on the same side of the line (from, to)
 					// as the through point, we're extending bellow 180 degrees
 					// and need to adapt extent.
-					extent -= 360 * (extent < 0 ? -1 : 1);
+					extent += extent < 0 ? 360 : -360;
 				}
 			}
 			var ext = Math.abs(extent),
@@ -2303,7 +2328,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 				z = 4 / 3 * Math.sin(half) / (1 + Math.cos(half)),
 				segments = [];
 			for (var i = 0; i <= count; i++) {
-				// Explicitely use to point for last segment, since depending
+				// Explicitly use to point for last segment, since depending
 				// on values the calculation adds imprecision:
 				var pt = to,
 					out = null;
@@ -2365,6 +2390,7 @@ var Path = PathItem.extend(/** @lends Path# */{
 			this.quadraticCurveTo(current.add(handle), current.add(to));
 		},
 
+		// TODO: Implement version for: (to, radius, rotation, clockwise, large)
 		arcBy: function(/* to, clockwise | through, to */) {
 			var current = getCurrentSegment(this)._point,
 				point = current.add(Point.read(arguments)),
@@ -2378,14 +2404,10 @@ var Path = PathItem.extend(/** @lends Path# */{
 			}
 		},
 
-		closePath: function() {
-			var first = this.getFirstSegment(),
-				last = this.getLastSegment();
-			if (first !== last && first._point.equals(last._point)) {
-				first.setHandleIn(last._handleIn);
-				last.remove();
-			}
+		closePath: function(join) {
 			this.setClosed(true);
+			if (join)
+				this.join();
 		}
 	};
 }, {  // A dedicated scope for the tricky bounds calculations
@@ -2504,7 +2526,7 @@ statics: {
 			// When both handles are set in a segment and they are collinear,
 			// the join setting is ignored and round is always used.
 			var handleIn = segment._handleIn,
-				handleOut = segment._handleOut
+				handleOut = segment._handleOut;
 			if (join === 'round' || !handleIn.isZero() && !handleOut.isZero()
 					&& handleIn.isColinear(handleOut)) {
 				addRound(segment);
@@ -2517,7 +2539,7 @@ statics: {
 			if (cap === 'round') {
 				addRound(segment);
 			} else {
-				Path._addSquareCap(segment, cap, radius, add); 
+				Path._addSquareCap(segment, cap, radius, add);
 			}
 		}
 
@@ -2628,7 +2650,7 @@ statics: {
 		// or the last segment of the open path, in order to determine in which
 		// direction to move the point.
 		if (cap === 'square')
-			point = point.add(normal.rotate(loc.getParameter() == 0 ? -90 : 90));
+			point = point.add(normal.rotate(loc.getParameter() === 0 ? -90 : 90));
 		addPoint(point.add(normal));
 		addPoint(point.subtract(normal));
 	},
@@ -2650,7 +2672,7 @@ statics: {
 			segment._transformCoordinates(matrix, coords, false);
 			for (var j = 0; j < 6; j += 2) {
 				// Use different padding for points or handles
-				var padding = j == 0 ? joinPadding : strokePadding,
+				var padding = j === 0 ? joinPadding : strokePadding,
 					paddingX = padding ? padding[0] : 0,
 					paddingY = padding ? padding[1] : 0,
 					x = coords[j],

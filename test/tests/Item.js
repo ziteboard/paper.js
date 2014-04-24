@@ -578,15 +578,13 @@ test('Cloning a linked size', function() {
 	equals(error == null, true, description);
 });
 
-test('Item#type', function() {
-	equals(new Group().type, 'group');
-	equals(new Path().type, 'path');
-	equals(new CompoundPath().type, 'compound-path');
-
-	var canvas = document.createElement('canvas');
-	equals(new Raster(canvas).type, 'raster');
-	equals(new PlacedSymbol().type, 'placed-symbol');
-	equals(new PointText().type, 'point-text');
+test('Item#className', function() {
+	equals(new Group().className, 'Group');
+	equals(new Path().className, 'Path');
+	equals(new CompoundPath().className, 'CompoundPath');
+	equals(new Raster().className, 'Raster');
+	equals(new PlacedSymbol().className, 'PlacedSymbol');
+	equals(new PointText().className, 'PointText');
 });
 
 test('Item#isInserted', function() {
@@ -646,7 +644,7 @@ test('Item#blendMode in a transformed Group', function() {
 		blendMode: 'screen'
 	});
 
-	var raster = layer.rasterize();
+	var raster = layer.rasterize(72);
 	compareColors(raster.getPixel(0, 0), new Color(1, 0, 0, 1),
 			'Top left pixel should be red:');
 	compareColors(raster.getPixel(50, 50), new Color(1, 1, 0, 1),
@@ -658,9 +656,37 @@ test('Item#blendMode in a transformed Group', function() {
 	var group = new Group(path2);
 	group.position = [50, 50];
 
-	var raster = layer.rasterize();
+	var raster = layer.rasterize(72);
 	compareColors(raster.getPixel(0, 0), new Color(1, 0, 0, 1),
 			'Top left pixel should be red:');
 	compareColors(raster.getPixel(50, 50), new Color(1, 1, 0, 1),
 			'Middle center pixel should be yellow:');
+});
+
+
+test('Item#pivot', function() {
+	var path1 = new Path.Rectangle({
+		point: [50, 50],
+		size: [100, 100],
+		strokeColor: 'red',
+		applyMatrix: false
+	});
+
+	var path2 = new Path.Rectangle({
+		point: [50, 50],
+		size: [100, 100],
+		strokeColor: 'green',
+		applyMatrix: true
+	});
+
+	var pivot1 = path1.bounds.topLeft.clone();
+	path1.pivot = pivot1;
+	path1.position = [200, 200];
+	comparePoints(path1.pivot, pivot1, 'Changing position of an item with applyMatrix = false should not change pivot.');
+
+	var pivot2 = path2.bounds.topLeft.clone();
+	path2.pivot = pivot2;
+	path2.position = [200, 200];
+	comparePoints(path2.pivot, pivot2, 'Changing position of an item with applyMatrix = true should change pivot.');
+
 });

@@ -41,7 +41,6 @@
  * circle.fillColor = '#ff0000';
  */
 var Color = Base.extend(new function() {
-
 	var types = {
 		gray: ['gray'],
 		rgb: ['red', 'green', 'blue'],
@@ -97,7 +96,7 @@ var Color = Base.extend(new function() {
 				cached = colorCache[string] = [
 					data[0] / 255,
 					data[1] / 255,
-					data[2] / 255				
+					data[2] / 255
 				];
 			}
 			components = cached.slice();
@@ -367,7 +366,7 @@ var Color = Base.extend(new function() {
 		 * as an alternative to providing a gradient object<br>
 		 *
 		 * @name Color#initialize
-		 * @param {Object} object an object describing the components and 
+		 * @param {Object} object an object describing the components and
 		 *        properties of the color.
 		 *
 		 * @example {@paperscript}
@@ -399,7 +398,7 @@ var Color = Base.extend(new function() {
 		 * // the path and to position the gradient color:
 		 * var topLeft = view.center - [80, 80];
 		 * var bottomRight = view.center + [80, 80];
-		 * 
+		 *
 		 * var path = new Path.Rectangle({
 		 *	topLeft: topLeft,
 		 *	bottomRight: bottomRight,
@@ -452,17 +451,17 @@ var Color = Base.extend(new function() {
 		 * // Create a circle shaped path at the center of the view
 		 * // with a radius of 80:
 		 * var path = new Path.Circle({
-		 * 	center: view.center,
-		 * 	radius: 80
+		 *     center: view.center,
+		 *     radius: 80
 		 * });
 		 *
 		 * // The stops array: yellow mixes with red between 0 and 15%,
 		 * // 15% to 30% is pure red, red mixes with black between 30% to 100%:
 		 * var stops = [
-		 * 	['yellow', 0],
-		 * 	['red', 0.15],
-		 * 	['red', 0.3],
-		 * 	['black', 0.9]
+		 *     ['yellow', 0],
+		 *     ['red', 0.15],
+		 *     ['red', 0.3],
+		 *     ['black', 0.9]
 		 * ];
 		 *
 		 * // Create a radial gradient using the color stops array:
@@ -800,7 +799,7 @@ var Color = Base.extend(new function() {
 		/**
 		 * Returns the color as a CSS string.
 		 *
-		 * @param {Boolean} hex wether to return the color in hexadecial
+		 * @param {Boolean} hex whether to return the color in hexadecial
 		 * representation or as a CSS RGB / RGBA string.
 		 * @return {String} a CSS string representation of the color.
 		 */
@@ -1087,7 +1086,7 @@ var Color = Base.extend(new function() {
 		 *	center: view.center,
 		 *	radius: view.bounds.height * 0.4
 		 * });
-		 * 
+		 *
 		 * path.fillColor = {
 		 *	gradient: {
 		 *		stops: ['yellow', 'red', 'black'],
@@ -1096,7 +1095,7 @@ var Color = Base.extend(new function() {
 		 *	origin: path.position,
 		 *	destination: path.bounds.rightCenter
 		 * };
-		 * 
+		 *
 		 * function onMouseMove(event) {
 		 *	// Set the origin highlight of the path's gradient color
 		 *	// to the position of the mouse:

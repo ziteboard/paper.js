@@ -57,8 +57,8 @@ var CanvasProvider = {
 		return canvas;
 	},
 
-	getContext: function(width, height) {
-		return this.getCanvas(width, height).getContext('2d');
+	getContext: function(width, height, pixelRatio) {
+		return this.getCanvas(width, height, pixelRatio).getContext('2d');
 	},
 
 	 // release can receive either a canvas or a context.

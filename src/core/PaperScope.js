@@ -48,11 +48,11 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
 		// one.
 		paper = this;
 		// Default configurable settings.
-		this.settings = {
+		this.settings = new Base({
 			applyMatrix: true,
 			handleSize: 4,
 			hitTolerance: 0
-		};
+		});
 		this.project = null;
 		this.projects = [];
 		this.tools = [];
@@ -92,7 +92,7 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
 	 *
 	 * <b>settings.applyMatrix:</b>
 	 *
-	 * <b>settings.handleSize:</b> 
+	 * <b>settings.handleSize:</b>
 	 *
 	 * <b>settings.hitTolerance:</b>
 	 *
@@ -118,7 +118,7 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
 	 * @bean
 	 */
 	getView: function() {
-		return this.project && this.project.view;
+		return this.project && this.project.getView();
 	},
 
 	/**

@@ -22,11 +22,11 @@
 var View = Base.extend(Callback, /** @lends View# */{
 	_class: 'View',
 
-	initialize: function View(element) {
+	initialize: function View(project, element) {
 		// Store reference to the currently active global paper scope, and the
 		// active project, which will be represented by this view
-		this._scope = paper;
-		this._project = paper.project;
+		this._project = project;
+		this._scope = project._scope;
 		this._element = element;
 		var size;
 /*#*/ if (__options.environment == 'browser') {
@@ -78,12 +78,16 @@ var View = Base.extend(Callback, /** @lends View# */{
 			// Try visible size first, since that will help handling previously
 			// scaled canvases (e.g. when dealing with pixel-ratio)
 			size = DomElement.getSize(element);
-			// If the element is invisible, we cannot directly access
-			// element.width / height, because they would appear 0.
-			// Reading the attributes should still work.
-			if (size.isNaN() || size.isZero())
-				size = new Size(parseInt(element.getAttribute('width'), 10),
-							parseInt(element.getAttribute('height'), 10));
+			if (size.isNaN() || size.isZero()) {
+				// If the element is invisible, we cannot directly access
+				// element.width / height, because they would appear 0.
+				// Reading the attributes should still work.
+				var getSize = function(name) {
+					return element[name]
+							|| parseInt(element.getAttribute(name), 10);
+				};
+				size = new Size(getSize('width'), getSize('height'));
+			}
 		}
 		// Set canvas size even if we just deterined the size from it, since
 		// it might have been set to a % size, in which case it would use some
@@ -139,8 +143,8 @@ var View = Base.extend(Callback, /** @lends View# */{
 		View._views.splice(View._views.indexOf(this), 1);
 		delete View._viewsById[this._id];
 		// Unlink from project
-		if (this._project.view == this)
-			this._project.view = null;
+		if (this._project._view === this)
+			this._project._view = null;
 /*#*/ if (__options.environment == 'browser') {
 		// Uninstall event handlers again for this view.
 		DomEvent.remove(this._element, this._viewEvents);
@@ -177,7 +181,7 @@ var View = Base.extend(Callback, /** @lends View# */{
 		onResize: {}
 	},
 
-	// These are default values for event related properties on the prototype. 
+	// These are default values for event related properties on the prototype.
 	// Writing item._count++ does not change the defaults, it creates / updates
 	// the property on the instance. Useful!
 	_animate: false,
@@ -516,8 +520,8 @@ var View = Base.extend(Callback, /** @lends View# */{
 	 * path.fillColor = 'black';
 	 *
 	 * function onFrame(event) {
-	 * 	// Every frame, rotate the path by 3 degrees:
-	 * 	path.rotate(3);
+	 *     // Every frame, rotate the path by 3 degrees:
+	 *     path.rotate(3);
 	 * }
 	 *
 	 * @name View#onFrame
@@ -536,8 +540,8 @@ var View = Base.extend(Callback, /** @lends View# */{
 	 * path.fillColor = 'red';
 	 *
 	 * function onResize(event) {
-	 * 	// Whenever the view is resized, move the path to its center:
-	 * 	path.position = view.center;
+	 *     // Whenever the view is resized, move the path to its center:
+	 *     path.position = view.center;
 	 * }
 	 *
 	 * @name View#onResize
@@ -546,7 +550,7 @@ var View = Base.extend(Callback, /** @lends View# */{
 	 */
 	/**
 	 * {@grouptitle Event Handling}
-	 * 
+	 *
 	 * Attach an event handler to the view.
 	 *
 	 * @name View#attach
@@ -555,18 +559,18 @@ var View = Base.extend(Callback, /** @lends View# */{
 	 * @param {String('frame', 'resize')} type the event type
 	 * @param {Function} function The function to be called when the event
 	 * occurs
-	 * 
+	 *
 	 * @example {@paperscript}
 	 * // Create a rectangle shaped path with its top left point at:
 	 * // {x: 50, y: 25} and a size of {width: 50, height: 50}
 	 * var path = new Path.Rectangle(new Point(50, 25), new Size(50, 50));
 	 * path.fillColor = 'black';
-	 * 
+	 *
 	 * var frameHandler = function(event) {
-	 * 	// Every frame, rotate the path by 3 degrees:
-	 * 	path.rotate(3);
+	 *     // Every frame, rotate the path by 3 degrees:
+	 *     path.rotate(3);
 	 * };
-	 * 
+	 *
 	 * view.on('frame', frameHandler);
 	 */
 	/**
@@ -581,14 +585,14 @@ var View = Base.extend(Callback, /** @lends View# */{
 	 * // {x: 50, y: 25} and a size of {width: 50, height: 50}
 	 * var path = new Path.Rectangle(new Point(50, 25), new Size(50, 50));
 	 * path.fillColor = 'black';
-	 * 
+	 *
 	 * var frameHandler = function(event) {
-	 * 	// Every frame, rotate the path by 3 degrees:
-	 * 	path.rotate(3);
+	 *     // Every frame, rotate the path by 3 degrees:
+	 *     path.rotate(3);
 	 * };
-	 * 
+	 *
 	 * view.on({
-	 * 	frame: frameHandler
+	 *     frame: frameHandler
 	 * });
 	 */
 
@@ -600,26 +604,26 @@ var View = Base.extend(Callback, /** @lends View# */{
 	 * @function
 	 * @param {String('frame', 'resize')} type the event type
 	 * @param {Function} function The function to be detached
-	 * 
+	 *
 	 * @example {@paperscript}
 	 * // Create a rectangle shaped path with its top left point at:
 	 * // {x: 50, y: 25} and a size of {width: 50, height: 50}
 	 * var path = new Path.Rectangle(new Point(50, 25), new Size(50, 50));
 	 * path.fillColor = 'black';
-	 * 
+	 *
 	 * var frameHandler = function(event) {
-	 * 	// Every frame, rotate the path by 3 degrees:
-	 * 	path.rotate(3);
+	 *     // Every frame, rotate the path by 3 degrees:
+	 *     path.rotate(3);
 	 * };
-	 * 
+	 *
 	 * view.on({
-	 * 	frame: frameHandler
+	 *     frame: frameHandler
 	 * });
-	 * 
+	 *
 	 * // When the user presses the mouse,
 	 * // detach the frame handler from the view:
 	 * function onMouseDown(event) {
-	 * 	view.detach('frame');
+	 *     view.detach('frame');
 	 * }
 	 */
 	/**
@@ -658,14 +662,14 @@ var View = Base.extend(Callback, /** @lends View# */{
 		_viewsById: {},
 		_id: 0,
 
-		create: function(element) {
+		create: function(project, element) {
 /*#*/ if (__options.environment == 'browser') {
 			if (typeof element === 'string')
 				element = document.getElementById(element);
 /*#*/ } // __options.environment == 'browser'
 			// Factory to provide the right View subclass for a given element.
 			// Produces only CanvasViews for now:
-			return new CanvasView(element);
+			return new CanvasView(project, element);
 		}
 	}
 }, new function() {
@@ -810,7 +814,6 @@ var View = Base.extend(Callback, /** @lends View# */{
 		if (!view || !dragging)
 			return;
 		var point = viewToProject(view, event);
-		curPoint = null;
 		dragging = false;
 		view._handleEvent('mouseup', point, event);
 		if (tool)

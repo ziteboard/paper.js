@@ -18,7 +18,7 @@
  * scene graph. As the term document is already taken in the browser context,
  * it is called Project.
  *
- * Projects allow the manipluation of the styles that are applied to all newly
+ * Projects allow the manipulation of the styles that are applied to all newly
  * created items, give access to the selected items, and will in future versions
  * offer ways to query for items in the scene graph defining specific
  * requirements, and means to persist and load from different formats, such as
@@ -43,20 +43,23 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 	 * Note that when working with PaperScript, a project is automatically
 	 * created for us and the {@link PaperScope#project} variable points to it.
 	 *
-	 * @param {View|HTMLCanvasElement} view Either a view object or an HTML
-	 * Canvas element that should be wrapped in a newly created view.
+	 * @param {HTMLCanvasElement} element an HTML anvas element that should be
+	 * used as the element for the view.
 	 */
-	initialize: function Project(view) {
+	initialize: function Project(element) {
 		// Activate straight away by passing true to PaperScopeItem constructor,
 		// so paper.project is set, as required by Layer and DoumentView
 		// constructors.
 		PaperScopeItem.call(this, true);
 		this.layers = [];
 		this.symbols = [];
-		this._currentStyle = new Style();
+		this._currentStyle = new Style(null, null, this);
 		this.activeLayer = new Layer();
-		if (view)
-			this.view = view instanceof View ? view : View.create(view);
+		// If no view is provided, we create a 1x1 px canvas view just so we
+		// have something to do size calculations with.
+		// (e.g. PointText#_getBounds)
+		this._view = View.create(this,
+				element || CanvasProvider.getCanvas(1, 1));
 		this._selectedItems = {};
 		this._selectedItemCount = 0;
 		// See Item#draw() for an explanation of _updateVersion
@@ -93,7 +96,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 
 	/**
 	 * Specifies whether the project has any content or not. Note that since
-	 * projects by default are created with one empty layer, this returns alos
+	 * projects by default are created with one empty layer, this returns also
 	 * {@code true} if that layer exists but is itself empty.
 	 *
 	 * @return Boolean
@@ -110,16 +113,19 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 	remove: function remove() {
 		if (!remove.base.call(this))
 			return false;
-		if (this.view)
-			this.view.remove();
+		if (this._view)
+			this._view.remove();
 		return true;
 	},
 
 	/**
 	 * The reference to the project's view.
-	 * @name Project#view
 	 * @type View
+	 * @bean
 	 */
+	getView: function() {
+		return this._view;
+	},
 
 	/**
 	 * The currently active path style. All selected items and newly
@@ -130,9 +136,9 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 	 *
 	 * @example {@paperscript}
 	 * project.currentStyle = {
-	 * 	fillColor: 'red',
-	 * 	strokeColor: 'black',
-	 * 	strokeWidth: 5
+	 *     fillColor: 'red',
+	 *     strokeColor: 'black',
+	 *     strokeWidth: 5
 	 * }
 	 *
 	 * // The following paths will take over all style properties of
@@ -256,20 +262,22 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 	/**
 	 * Perform a hit test on the items contained within the project at the
 	 * location of the specified point.
-	 * 
+	 *
 	 * The options object allows you to control the specifics of the hit test
 	 * and may contain a combination of the following values:
 	 * <b>options.tolerance:</b> {@code Number} – the tolerance of the hit test
 	 * in points, can also be controlled through
 	 * {@link Project#options}{@code .hitTolerance}.
-	 * <b>options.type:</b> Only hit test again a certain item
-	 * type: {String('group', 'layer', 'path', 'compound-path', 'shape',
-	 * 'raster', 'placed-symbol', 'point-text')}, etc.
+	 * <b>options.class:</b> Only hit test again a certain item class and its
+	 * sub-classes: {@code Group, Layer, Path, CompoundPath, Shape, Raster,
+	 * PlacedSymbol, PointText}, etc.
 	 * <b>options.fill:</b> {@code Boolean} – hit test the fill of items.
-	 * <b>options.stroke:</b> {@code Boolean} – hit test the curves of path
-	 * items, taking into account stroke width.
+	 * <b>options.stroke:</b> {@code Boolean} – hit test the stroke of path
+	 * items, taking into account the setting of stroke color and width.
 	 * <b>options.segments:</b> {@code Boolean} – hit test for
 	 * {@link Segment#point} of {@link Path} items.
+	 * <b>options.curves:</b> {@code Boolean} – hit test the curves of path
+	 * items, without taking the stroke color or width into account.
 	 * <b>options.handles:</b> {@code Boolean} – hit test for the handles
 	 * ({@link Segment#handleIn} / {@link Segment#handleOut}) of path segments.
 	 * <b>options.ends:</b> {@code Boolean} – only hit test for the first or
@@ -292,7 +300,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 	 */
 	hitTest: function(/* point, options */) {
 		// We don't need to do this here, but it speeds up things since we won't
-		// repeatetly convert in Item#hitTest() then.
+		// repeatedly convert in Item#hitTest() then.
 		var point = Point.read(arguments),
 			options = HitResult.getOptions(Base.read(arguments));
 		// Loop backwards, so layers that get drawn last are tested first
@@ -301,33 +309,18 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 			if (res) return res;
 		}
 		return null;
-	}
-}, new function() {
-	function getItems(project, match, list) {
-		var layers = project.layers,
-			items = list && [];
-		for (var i = 0, l = layers.length; i < l; i++) {
-			var res = layers[i][list ? 'getItems' : 'getItem'](match);
-			if (list) {
-				items.push.apply(items, res);
-			} else if (res)
-				return res;
-		}
-		return list ? items : null;
-	}
+	},
 
-	return /** @lends Project# */{
-		// DOCS: Project#getItems
-		getItems: function(match) {
-			return getItems(this, match, true);
-		},
+	// DOCS: Project#getItems
+	getItems: function(match) {
+		return Item._getItems(this.layers, match, true);
+	},
 
-		// DOCS: Project#getItems
-		getItem: function(match) {
-			return getItems(this, match, false);
-		}
-	};
-}, /** @lends Project# */{
+	// DOCS: Project#getItems
+	getItem: function(match) {
+		return Item._getItems(this.layers, match, false);
+	},
+
 	/**
 	 * {@grouptitle Importing / Exporting JSON and SVG}
 	 *
@@ -335,8 +328,8 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 	 * a JSON data string.
 	 *
 	 * The options object offers control over some aspects of the SVG export:
-	 * <b>options.asString:</b> {@code Boolean} – wether the JSON is returned as
-	 * a {@code Object} or a {@code String}.
+	 * <b>options.asString:</b> {@code Boolean} – whether the JSON is returned
+	 * as a {@code Object} or a {@code String}.
 	 * <b>options.precision:</b> {@code Number} – the amount of fractional
 	 * digits in numbers used in JSON data.
 	 *
@@ -367,11 +360,11 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 	 * all contained in one top level SVG group node.
 	 *
 	 * The options object offers control over some aspects of the SVG export:
-	 * <b>options.asString:</b> {@code Boolean} – wether a SVG node or a
+	 * <b>options.asString:</b> {@code Boolean} – whether a SVG node or a
 	 * {@code String} is to be returned.
 	 * <b>options.precision:</b> {@code Number} – the amount of fractional
 	 * digits in numbers used in SVG data.
-	 * <b>options.matchShapes:</b> {@code Boolean} – wether imported path
+	 * <b>options.matchShapes:</b> {@code Boolean} – whether imported path
 	 * items should tried to be converted to shape items, if their geometries
 	 * match.
 	 *
@@ -390,7 +383,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 	 * {@link Project#clear()} to do so.
 	 *
 	 * The options object offers control over some aspects of the SVG import:
-	 * <b>options.expandShapes:</b> {@code Boolean} – wether imported shape
+	 * <b>options.expandShapes:</b> {@code Boolean} – whether imported shape
 	 * items should be expanded to path items.
 	 *
 	 * @name Project#importSVG
@@ -435,33 +428,44 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 		var param = new Base({
 			offset: new Point(0, 0),
 			pixelRatio: pixelRatio,
-			// Tell the drawing routine that we want to track nested matrices
-			// in param.transforms, and that we want it to set _globalMatrix
-			// as used below. Item#rasterize() and Raster#getAverageColor() do
-			// not need to set this.
-			trackTransforms: true
+			viewMatrix: matrix.isIdentity() ? null : matrix,
+			matrices: [new Matrix()], // Start with the identity matrix.
+			// Tell the drawing routine that we want to keep _globalMatrix up to
+			// date. Item#rasterize() and Raster#getAverageColor() should not
+			// set this.
+			updateMatrix: true
 		});
-		for (var i = 0, l = this.layers.length; i < l; i++)
-			this.layers[i].draw(ctx, param);
+		for (var i = 0, layers = this.layers, l = layers.length; i < l; i++)
+			layers[i].draw(ctx, param);
 		ctx.restore();
 
 		// Draw the selection of the selected items in the project:
 		if (this._selectedItemCount > 0) {
 			ctx.save();
 			ctx.strokeWidth = 1;
+			var size = this._scope.settings.handleSize,
+				half = size / 2;
 			for (var id in this._selectedItems) {
+				// Check the updateVersion of each item to see if it got drawn
+				// in the above draw loop. If the version is out of sync, the
+				// item is either not in the DOM anymore or is invisible.
 				var item = this._selectedItems[id],
-					size = this._scope.settings.handleSize;
-					half = size / 2;
-				if (item._updateVersion === this._updateVersion
+					parent = item._parent,
+					// For compound-paths, we need to use the updateVersion of
+					// the parent, because when using the ctx.currentPath
+					// optimization, the children don't have to get drawn on
+					// each frame and thus won't change their updateVersion.
+					versionItem = parent instanceof CompoundPath ? parent : item;
+				if (versionItem._updateVersion === this._updateVersion
 						&& (item._drawSelected || item._boundsSelected)) {
 					// Allow definition of selected color on a per item and per
 					// layer level, with a fallback to #009dec
 					var color = item.getSelectedColor()
-							|| item.getLayer().getSelectedColor();
+							|| item.getLayer().getSelectedColor(),
+						mx = matrix.clone().concatenate(
+								item.getGlobalMatrix(true));
 					ctx.strokeStyle = ctx.fillStyle = color
 							? color.toCanvasStyle(ctx) : '#009dec';
-					var mx = matrix.clone().concatenate(item._globalMatrix);
 					if (item._drawSelected)
 						item._drawSelected(ctx, mx);
 					if (item._boundsSelected) {

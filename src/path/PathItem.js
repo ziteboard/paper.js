@@ -47,19 +47,19 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 	 * var intersectionGroup = new Group();
 	 *
 	 * function onFrame(event) {
-	 * 	secondPath.rotate(3);
+	 *     secondPath.rotate(3);
 	 *
-	 * 	var intersections = path.getIntersections(secondPath);
-	 * 	intersectionGroup.removeChildren();
+	 *     var intersections = path.getIntersections(secondPath);
+	 *     intersectionGroup.removeChildren();
 	 *
-	 * 	for (var i = 0; i < intersections.length; i++) {
-	 * 		var intersectionPath = new Path.Circle({
-	 * 			center: intersections[i].point,
-	 * 			radius: 4,
-	 * 			fillColor: 'red'
-	 * 		});
-	 * 		intersectionGroup.addChild(intersectionPath);
-	 * 	}
+	 *     for (var i = 0; i < intersections.length; i++) {
+	 *         var intersectionPath = new Path.Circle({
+	 *             center: intersections[i].point,
+	 *             radius: 4,
+	 *             fillColor: 'red'
+	 *         });
+	 *         intersectionGroup.addChild(intersectionPath);
+	 *     }
 	 * }
 	 */
 	getIntersections: function(path, _expand) {
@@ -155,7 +155,7 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 			var path1 = loc1.getPath(),
 				path2 = loc2.getPath();
 			return path1 === path2
-					// We can add parameter (0 <= t <= 1) to index 
+					// We can add parameter (0 <= t <= 1) to index
 					// (a integer) to compare both at the same time
 					? (loc1.getIndex() + loc1.getParameter())
 							- (loc2.getIndex() + loc2.getParameter())
@@ -181,7 +181,16 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 		return locations;
 	},
 
+	/**
+	 * The path's geometry, formatted as SVG style path data.
+	 *
+	 * @name PathItem#getPathData
+	 * @type String
+	 * @bean
+	 */
+
 	setPathData: function(data) {
+		// NOTE: #getPathData() is defined in CompoundPath / Path
 		// This is a very compact SVG Path Data parser that works both for Path
 		// and CompoundPath.
 
@@ -220,16 +229,19 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 			coords = part.match(/[+-]?(?:\d*\.\d+|\d+\.?)(?:[eE][+-]?\d+)?/g);
 			var length = coords && coords.length;
 			relative = command === lower;
-			if (previous === 'z' && lower !== 'z')
+			if (previous === 'z' && !/[mz]/.test(lower))
 				this.moveTo(current = start);
 			switch (lower) {
 			case 'm':
 			case 'l':
+				var move = lower === 'm';
+				if (move && previous && previous !== 'z')
+					this.closePath(true);
 				for (var j = 0; j < length; j += 2)
-					this[j === 0 && lower === 'm' ? 'moveTo' : 'lineTo'](
+					this[j === 0 && move ? 'moveTo' : 'lineTo'](
 							current = getPoint(j));
 				control = current;
-				if(lower === 'm')
+				if (move)
 					start = current;
 				break;
 			case 'h':
@@ -283,11 +295,11 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 				for (var j = 0; j < length; j += 7) {
 					this.arcTo(current = getPoint(j + 5),
 							new Size(+coords[0], +coords[1]),
-							+coords[2], +coords[3], +coords[4]);
+							+coords[2], +coords[4], +coords[3]);
 				}
 				break;
 			case 'z':
-				this.closePath();
+				this.closePath(true);
 				break;
 			}
 			previous = lower;
@@ -301,13 +313,13 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 	},
 
 	_contains: function(point) {
-		// NOTE: point is reverse transformed by _matrix, so we don't need to 
+		// NOTE: point is reverse transformed by _matrix, so we don't need to
 		// apply here.
 /*#*/ if (__options.nativeContains || !__options.booleanOperations) {
 		// To compare with native canvas approach:
 		var ctx = CanvasProvider.getContext(1, 1);
-		// Abuse clip = true to get a shape for ctx.isPointInPath().
-		this._draw(ctx, new Base({ clip: true }));
+		// Use dontFinish to tell _draw to only produce geometries for hit-test.
+		this._draw(ctx, new Base({ dontFinish: true }));
 		var res = ctx.isPointInPath(point.x, point.y, this.getWindingRule());
 		CanvasProvider.release(ctx);
 		return res;
@@ -315,7 +327,7 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 		var winding = this._getWinding(point, false, true);
 		return !!(this.getWindingRule() === 'evenodd' ? winding & 1 : winding);
 /*#*/ } // !__options.nativeContains && __options.booleanOperations
-	},
+	}
 
 	/**
 	 * Smoothes the curves without changing the amount of segments in the path
@@ -437,22 +449,22 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 	 *
 	 * var myPath;
 	 * function onMouseMove(event) {
-	 * 	// If we created a path before, remove it:
-	 * 	if (myPath) {
-	 * 		myPath.remove();
-	 * 	}
+	 *     // If we created a path before, remove it:
+	 *     if (myPath) {
+	 *         myPath.remove();
+	 *     }
 	 *
-	 * 	// Create a new path and add a segment point to it
-	 * 	// at {x: 150, y: 150):
-	 * 	myPath = new Path();
-	 * 	myPath.add(150, 150);
+	 *     // Create a new path and add a segment point to it
+	 *     // at {x: 150, y: 150):
+	 *     myPath = new Path();
+	 *     myPath.add(150, 150);
 	 *
-	 * 	// Draw a curve through the position of the mouse to 'toPoint'
-	 * 	var toPoint = new Point(350, 150);
-	 * 	myPath.curveTo(event.point, toPoint);
+	 *     // Draw a curve through the position of the mouse to 'toPoint'
+	 *     var toPoint = new Point(350, 150);
+	 *     myPath.curveTo(event.point, toPoint);
 	 *
-	 * 	// Select the path, so we can see its segments:
-	 * 	myPath.selected = true;
+	 *     // Select the path, so we can see its segments:
+	 *     myPath.selected = true;
 	 * }
 	 */
 
@@ -491,29 +503,29 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 	 *
 	 * var myPath;
 	 * function onMouseDrag(event) {
-	 * 	// If we created a path before, remove it:
-	 * 	if (myPath) {
-	 * 	    myPath.remove();
-	 * 	}
+	 *     // If we created a path before, remove it:
+	 *     if (myPath) {
+	 *         myPath.remove();
+	 *     }
 	 *
-	 * 	// Create a new path and add a segment point to it
-	 * 	// at {x: 150, y: 150):
-	 * 	myPath = new Path();
-	 * 	myPath.add(150, 150);
+	 *     // Create a new path and add a segment point to it
+	 *     // at {x: 150, y: 150):
+	 *     myPath = new Path();
+	 *     myPath.add(150, 150);
 	 *
-	 * 	// Draw an arc through the position of the mouse to 'toPoint'
-	 * 	var toPoint = new Point(350, 150);
-	 * 	myPath.arcTo(event.point, toPoint);
+	 *     // Draw an arc through the position of the mouse to 'toPoint'
+	 *     var toPoint = new Point(350, 150);
+	 *     myPath.arcTo(event.point, toPoint);
 	 *
-	 * 	// Select the path, so we can see its segments:
-	 * 	myPath.selected = true;
+	 *     // Select the path, so we can see its segments:
+	 *     myPath.selected = true;
 	 * }
 	 *
 	 * // When the mouse is released, deselect the path
 	 * // and fill it with black.
 	 * function onMouseUp(event) {
-	 * 	myPath.selected = false;
-	 * 	myPath.fillColor = 'black';
+	 *     myPath.selected = false;
+	 *     myPath.fillColor = 'black';
 	 * }
 	 */
 	/**
@@ -552,24 +564,27 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 	 * // When the user clicks, create a new path and add
 	 * // the current mouse position to it as its first segment:
 	 * function onMouseDown(event) {
-	 * 	myPath = new Path();
-	 * 	myPath.strokeColor = 'black';
-	 * 	myPath.add(event.point);
+	 *     myPath = new Path();
+	 *     myPath.strokeColor = 'black';
+	 *     myPath.add(event.point);
 	 * }
 	 *
 	 * // On each mouse drag event, draw an arc to the current
 	 * // position of the mouse:
 	 * function onMouseDrag(event) {
-	 * 	myPath.arcTo(event.point);
+	 *     myPath.arcTo(event.point);
 	 * }
 	 */
+	// DOCS: PathItem#arcTo(to, radius, rotation, clockwise, large)
 
 	/**
-	 * Closes the path. When closed, Paper.js connects the first and last
-	 * segments.
+	 * Closes the path. When closed, Paper.js connects the first and
+	 * last segment of the path with an additional curve.
 	 *
 	 * @name PathItem#closePath
 	 * @function
+	 * @param {Boolean} join controls whether the method should attempt to merge
+	 * the first segment with the last if they lie in the same location.
 	 * @see Path#closed
 	 */
 
@@ -617,14 +632,14 @@ var PathItem = Item.extend(/** @lends PathItem# */{
 	 *
 	 * // Loop 500 times:
 	 * for (var i = 0; i < 500; i++) {
-	 * 	// Create a vector with an ever increasing length
-	 * 	// and an angle in increments of 45 degrees
-	 * 	var vector = new Point({
-	 * 	    angle: i * 45,
-	 * 	    length: i / 2
-	 * 	});
-	 * 	// Add the vector relatively to the last segment point:
-	 * 	path.lineBy(vector);
+	 *     // Create a vector with an ever increasing length
+	 *     // and an angle in increments of 45 degrees
+	 *     var vector = new Point({
+	 *         angle: i * 45,
+	 *         length: i / 2
+	 *     });
+	 *     // Add the vector relatively to the last segment point:
+	 *     path.lineBy(vector);
 	 * }
 	 *
 	 * // Smooth the handles of the path:

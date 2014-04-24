@@ -153,11 +153,11 @@ new function() {
 	}
 
 	function exportShape(item) {
-		var shape = item._shape,
+		var type = item._type,
 			radius = item._radius,
-			attrs = getTransform(item, true, shape !== 'rectangle');
-		if (shape === 'rectangle') {
-			shape = 'rect'; // SVG
+			attrs = getTransform(item, true, type !== 'rectangle');
+		if (type === 'rectangle') {
+			type = 'rect'; // SVG
 			var size = item._size,
 				width = size.width,
 				height = size.height;
@@ -169,14 +169,14 @@ new function() {
 				radius = null;
 		}
 		if (radius) {
-			if (shape === 'circle') {
+			if (type === 'circle') {
 				attrs.r = radius;
 			} else {
 				attrs.rx = radius.width;
 				attrs.ry = radius.height;
 			}
 		}
-		return createElement(shape, attrs);
+		return createElement(type, attrs);
 	}
 
 	function exportCompoundPath(item) {
@@ -271,14 +271,14 @@ new function() {
 	}
 
 	var exporters = {
-		group: exportGroup,
-		layer: exportGroup,
-		raster: exportRaster,
-		path: exportPath,
-		shape: exportShape,
-		'compound-path': exportCompoundPath,
-		'placed-symbol': exportPlacedSymbol,
-		'point-text': exportText
+		Group: exportGroup,
+		Layer: exportGroup,
+		Raster: exportRaster,
+		Path: exportPath,
+		Shape: exportShape,
+		CompoundPath: exportCompoundPath,
+		PlacedSymbol: exportPlacedSymbol,
+		PointText: exportText
 	};
 
 	function applyStyle(item, node) {
@@ -310,7 +310,7 @@ new function() {
 						: type === 'color'
 							? value.gradient
 								? exportGradient(value, item)
-								// true for noAlpha, see above	
+								// true for noAlpha, see above
 								: value.toCSS(true)
 							: type === 'array'
 								? value.join(',')
@@ -379,10 +379,13 @@ new function() {
 	}
 
 	function exportSVG(item, options) {
-		var exporter = exporters[item._type],
+		var exporter = exporters[item._class],
 			node = exporter && exporter(item, options);
-		if (node && item._data)
-			node.setAttribute('data-paper-data', JSON.stringify(item._data));
+		if (node && item._data) {
+			var data = JSON.stringify(item._data);
+			if (data !== '{}')
+				node.setAttribute('data-paper-data', data);
+		}
 		return node && applyStyle(item, node);
 	}
 
@@ -404,7 +407,7 @@ new function() {
 		exportSVG: function(options) {
 			options = setOptions(options);
 			var layers = this.layers,
-				size = this.view.getSize(),
+				size = this.getView().getSize(),
 				node = createElement('svg', {
 					x: 0,
 					y: 0,

@@ -54,19 +54,19 @@ var Group = Item.extend(/** @lends Group# */{
 	 * var group = new Group();
 	 *
 	 * function onMouseDown(event) {
-	 * 	// Create a new circle shaped path at the position
-	 * 	// of the mouse:
-	 * 	var path = new Path.Circle(event.point, 5);
-	 * 	path.fillColor = 'black';
+	 *     // Create a new circle shaped path at the position
+	 *     // of the mouse:
+	 *     var path = new Path.Circle(event.point, 5);
+	 *     path.fillColor = 'black';
 	 *
-	 * 	// Add the path to the group's children list:
-	 * 	group.addChild(path);
+	 *     // Add the path to the group's children list:
+	 *     group.addChild(path);
 	 * }
 	 *
 	 * function onFrame(event) {
-	 * 	// Rotate the group by 1 degree from
-	 * 	// the centerpoint of the view:
-	 * 	group.rotate(1, view.center);
+	 *     // Rotate the group by 1 degree from
+	 *     // the centerpoint of the view:
+	 *     group.rotate(1, view.center);
 	 * }
 	 */
 	/**
@@ -79,14 +79,14 @@ var Group = Item.extend(/** @lends Group# */{
 	 * @example {@paperscript}
 	 * var path = new Path([100, 100], [100, 200]);
 	 * var path2 = new Path([50, 150], [150, 150]);
-	 * 
+	 *
 	 * // Create a group from the two paths:
 	 * var group = new Group({
-	 * 	children: [path, path2],
-	 * 	// Set the stroke color of all items in the group:
-	 * 	strokeColor: 'black',
-	 * 	// Move the group to the center of the view:
-	 * 	position: view.center
+	 *     children: [path, path2],
+	 *     // Set the stroke color of all items in the group:
+	 *     strokeColor: 'black',
+	 *     // Move the group to the center of the view:
+	 *     position: view.center
 	 * });
 	 */
 	initialize: function Group(arg) {
@@ -99,25 +99,29 @@ var Group = Item.extend(/** @lends Group# */{
 
 	_changed: function _changed(flags) {
 		_changed.base.call(this, flags);
-		if (flags & (/*#=*/ ChangeFlag.HIERARCHY | /*#=*/ ChangeFlag.CLIPPING)) {
+		if (flags & (/*#=*/ ChangeFlag.CHILDREN | /*#=*/ ChangeFlag.CLIPPING)) {
 			// Clear cached clip item whenever hierarchy changes
 			this._clipItem = undefined;
 		}
 	},
 
 	_getClipItem: function() {
-		// Allow us to set _clipItem to null when none is found and still return
-		// it as a defined value without searching again
-		if (this._clipItem !== undefined)
-			return this._clipItem;
-		for (var i = 0, l = this._children.length; i < l; i++) {
-			var child = this._children[i];
-			if (child._clipMask)
-				return this._clipItem = child;
+		// NOTE: _clipItem is the child that has _clipMask set to true.
+		var clipItem = this._clipItem;
+		// Distinguish null (no clipItem set) and undefined (clipItem was not
+		// looked for yet).
+		if (clipItem === undefined) {
+			clipItem = null;
+			for (var i = 0, l = this._children.length; i < l; i++) {
+				var child = this._children[i];
+				if (child._clipMask) {
+					clipItem = child;
+					break;
+				}
+			}
+			this._clipItem = clipItem;
 		}
-		// Make sure we're setting _clipItem to null so it won't be searched for
-		// nex time.
-		return this._clipItem = null;
+		return clipItem;
 	},
 
 	/**
@@ -127,30 +131,30 @@ var Group = Item.extend(/** @lends Group# */{
 	 *
 	 * @type Boolean
 	 * @bean
-	 * 
+	 *
 	 * @example {@paperscript}
 	 * var star = new Path.Star({
-	 * 	center: view.center,
-	 * 	points: 6,
-	 * 	radius1: 20,
-	 * 	radius2: 40,
-	 * 	fillColor: 'red'
+	 *     center: view.center,
+	 *     points: 6,
+	 *     radius1: 20,
+	 *     radius2: 40,
+	 *     fillColor: 'red'
 	 * });
-	 * 
+	 *
 	 * var circle = new Path.Circle({
-	 * 	center: view.center,
-	 * 	radius: 25,
-	 * 	strokeColor: 'black'
+	 *     center: view.center,
+	 *     radius: 25,
+	 *     strokeColor: 'black'
 	 * });
-	 * 
+	 *
 	 * // Create a group of the two items and clip it:
 	 * var group = new Group(circle, star);
 	 * group.clipped = true;
-	 * 
+	 *
 	 * // Lets animate the circle:
 	 * function onFrame(event) {
-	 * 	var offset = Math.sin(event.count / 30) * 30;
-	 * 	circle.position.x = view.center.x + offset;
+	 *     var offset = Math.sin(event.count / 30) * 30;
+	 *     circle.position.x = view.center.x + offset;
 	 * }
 	 */
 	isClipped: function() {
@@ -164,14 +168,33 @@ var Group = Item.extend(/** @lends Group# */{
 	},
 
 	_draw: function(ctx, param) {
-		var clipItem = param.clipItem = this._getClipItem();
-		if (clipItem)
+		var clip = param.clip,
+			clipItem = !clip && this._getClipItem(),
+			draw = true;
+		param = param.extend({ clipItem: clipItem, clip: false });
+		if (clip) {
+			// If told to clip with a group, we start our own path and draw each
+			// child just like in a compound-path. We also cache the resulting
+			// path in _currentPath.
+			if (this._currentPath) {
+				ctx.currentPath = this._currentPath;
+				draw = false;
+			} else {
+				ctx.beginPath();
+				param.dontStart = param.dontFinish = true;
+			}
+		} else if (clipItem) {
 			clipItem.draw(ctx, param.extend({ clip: true }));
-		for (var i = 0, l = this._children.length; i < l; i++) {
-			var item = this._children[i];
-			if (item !== clipItem)
-				item.draw(ctx, param);
 		}
-		param.clipItem = null;
+		if (draw) {
+			for (var i = 0, l = this._children.length; i < l; i++) {
+				var item = this._children[i];
+				if (item !== clipItem)
+					item.draw(ctx, param);
+			}
+		}
+		if (clip) {
+			this._currentPath = ctx.currentPath;
+		}
 	}
 });

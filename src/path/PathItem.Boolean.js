@@ -32,61 +32,24 @@
  */
 
 PathItem.inject(new function() {
-	/*
-	 * To deal with a HTML5 canvas requirement where CompoundPaths' child
-	 * contours has to be of different winding direction for correctly
-	 * filling holes. But if some individual countours are disjoint, i.e.
-	 * islands, we have to reorient them so that:
-	 * - The holes have opposite winding direction, already handled by paper
-	 * - Islands have to have the same winding direction as the first child
-	 *
-	 * NOTE: Does NOT handle self-intersecting CompoundPaths.
-	 */
-	function reorientPath(path) {
-		// Create a cloned version of the path firsts that we can modify freely,
-		// with its matrix applied to its geometry. 
-		path = path.clone(false).reduce().transform(null, true);
-		if (path instanceof CompoundPath) {
-			var children = path.removeChildren(),
-				length = children.length,
-				bounds = new Array(length),
-				counters = new Array(length),
-				clockwise;
-			children.sort(function(a, b) {
-				return b.getBounds().getArea() - a.getBounds().getArea();
-			});
-			path.addChildren(children);
-			clockwise = children[0].isClockwise();
-			for (var i = 0; i < length; i++) {
-				bounds[i] = children[i].getBounds();
-				counters[i] = 0;
-			}
-			for (var i = 0; i < length; i++) {
-				for (var j = 1; j < length; j++) {
-					if (i !== j && bounds[i].intersects(bounds[j]))
-						counters[j]++;
-				}
-				// Omit the first child
-				if (i > 0 && counters[i] % 2 === 0)
-					children[i].setClockwise(clockwise);
-			}
-		}
-		return path;
-	}
-
-	// Boolean operators return true if a curve with the given winding 
+	// Boolean operators return true if a curve with the given winding
 	// contribution contributes to the final result or not. They are called
 	// for each curve in the graph after curves in the operands are
 	// split at intersections.
 	function computeBoolean(path1, path2, operator, subtract) {
+		// Creates a cloned version of the path that we can modify freely, with
+		// its matrix applied to its geometry. Calls #reduce() to simplify
+		// compound paths and remove empty curves, and #reorient() to make sure
+		// all paths have correct winding direction.
+		function preparePath(path) {
+			return path.clone(false).reduce().reorient().transform(null, true);
+		}
+
 		// We do not modify the operands themselves
 		// The result might not belong to the same type
 		// i.e. subtraction(A:Path, B:Path):CompoundPath etc.
-		// We call reduce() on both cloned paths to simplify compound paths and
-		// remove empty curves. We also apply matrices to both paths in case
-		// they were transformed.
-		var _path1 = reorientPath(path1);
-			_path2 = path2 && path1 !== path2 && reorientPath(path2);
+		var _path1 = preparePath(path1),
+			_path2 = path2 && path1 !== path2 && preparePath(path2);
 		// Do operator specific calculations before we begin
 		// Make both paths at clockwise orientation, except when subtract = true
 		// We need both paths at opposite orientation for subtraction.
@@ -119,7 +82,7 @@ PathItem.inject(new function() {
 			collect(_path2._children || [_path2]);
 		// Propagate the winding contribution. Winding contribution of curves
 		// does not change between two intersections.
-		// First, sort all segments with an intersection to the begining.
+		// First, sort all segments with an intersection to the beginning.
 		segments.sort(function(a, b) {
 			var _a = a._intersection,
 				_b = b._intersection;
@@ -147,11 +110,11 @@ PathItem.inject(new function() {
 			// dividing the curve chain, with the same (amortised) time.
 			for (var j = 0; j < 3; j++) {
 				var length = totalLength * Math.random(),
-					amount = lengths.length;
+					amount = lengths.length,
 					k = 0;
 				do {
 					if (lengths[k] >= length) {
-						if (k > 0) 
+						if (k > 0)
 							length -= lengths[k - 1];
 						break;
 					}
@@ -162,7 +125,7 @@ PathItem.inject(new function() {
 					path = curve._path;
 				if (path._parent instanceof CompoundPath)
 					path = path._parent;
-				// While subtracting, we need to omit this curve if this 
+				// While subtracting, we need to omit this curve if this
 				// curve is contributing to the second operand and is outside
 				// the first operand.
 				windings[j] = subtract && _path2
@@ -184,13 +147,18 @@ PathItem.inject(new function() {
 		_path1.remove();
 		if (_path2)
 			_path2.remove();
-		// And then, we are done.
-		return result.reduce();
+		// See if the CompoundPath can be reduced to just a simple Path.
+		result = result.reduce();
+		// Copy over the left-hand item's style and we're done.
+		// TODO: Consider using Item#_clone() for this, but find a way to not
+		// clone children / name (content).
+		result.setStyle(path1._style);
+		return result;
 	}
 
 	/**
 	 * Private method for splitting a PathItem at the given intersections.
-	 * The routine works for both self intersections and intersections 
+	 * The routine works for both self intersections and intersections
 	 * between PathItems.
 	 * @param {CurveLocation[]} intersections Array of CurveLocation objects
 	 */
@@ -199,7 +167,7 @@ PathItem.inject(new function() {
 			linearSegments;
 
 		function resetLinear() {
-			// Reset linear segments if they were part of a linear curve 
+			// Reset linear segments if they were part of a linear curve
 			// and if we are done with the entire curve.
 			for (var i = 0, l = linearSegments.length; i < l; i++) {
 				var segment = linearSegments[i];
@@ -309,7 +277,7 @@ PathItem.inject(new function() {
 					// compare the endpoints of the curve to determine if the
 					// ray from query point along +-x direction will intersect
 					// the monotone curve. Results in quite significant speedup.
-				if (winding && (winding === 1 
+				if (winding && (winding === 1
 						&& y >= values[1] && y <= values[7]
 						|| y >= values[7] && y <= values[1])
 					&& Curve.solveCubic(values, 1, y, roots, 0,
@@ -343,13 +311,13 @@ PathItem.inject(new function() {
 	}
 
 	/**
-	 * Private method to trace closed contours from a set of segments according 
-	 * to a set of constraints—winding contribution and a custom operator.
-	 * 
+	 * Private method to trace closed contours from a set of segments according
+	 * to a set of constraints-winding contribution and a custom operator.
+	 *
 	 * @param {Segment[]} segments Array of 'seed' segments for tracing closed
 	 * contours
 	 * @param {Function} the operator function that receives as argument the
-	 * winding number contribution of a curve and returns a boolean value 
+	 * winding number contribution of a curve and returns a boolean value
 	 * indicating whether the curve should be  included in the final contour or
 	 * not
 	 * @return {Path[]} the contours traced
@@ -384,50 +352,53 @@ PathItem.inject(new function() {
 						&& (inter = seg._intersection)
 						&& (interSeg = inter._segment)
 						&& interSeg !== startSeg) {
-					var c1 = seg.getCurve();
-					if (dir > 0)
-						c1 = c1.getPrevious();
-					var t1 = c1.getTangentAt(dir < 1 ? ZERO : ONE, true),
-						// Get both curves at the intersection (except the entry
-						// curves) along with their winding values and tangents.
-						c4 = interSeg.getCurve(),
-						c3 = c4.getPrevious(),
-						t3 = c3.getTangentAt(ONE, true),
-						t4 = c4.getTangentAt(ZERO, true),
-						// Cross product of the entry and exit tangent vectors
-						// at the intersection, will let us select the correct
-						// countour to traverse next.
-						w3 = t1.cross(t3),
-						w4 = t1.cross(t4);
 					if (selfOp) {
 						// Switch to the intersection segment, if we are
 						// resolving self-Intersections.
 						seg._visited = interSeg._visited;
 						seg = interSeg;
 						dir = 1;
-					} else if (w3 * w4 !== 0) {
-						// Do not attempt to switch contours if we aren't
-						// absolutely sure that there is a possible candidate.
-						var curve = w3 < w4 ? c3 : c4,
-							nextCurve = operator(curve._segment1._winding)
-								? curve
-								: w3 < w4 ? c4 : c3,
-							nextSeg = nextCurve._segment1;
-						dir = nextCurve === c3 ? -1 : 1;
-						// If we didn't manage to find a suitable direction for
-						// next contour to traverse, stay on the same contour.
-						if (nextSeg._visited && seg._path !== nextSeg._path
-									|| !operator(nextSeg._winding)) {
-							dir = 1;
-						} else {
-							// Switch to the intersection segment.
-							seg._visited = interSeg._visited;
-							seg = interSeg;
-							if (nextSeg._visited) 
-								dir = 1;
-						}
 					} else {
-						dir = 1;
+						var c1 = seg.getCurve();
+						if (dir > 0)
+							c1 = c1.getPrevious();
+						var t1 = c1.getTangentAt(dir < 1 ? ZERO : ONE, true),
+							// Get both curves at the intersection (except the
+							// entry curves).
+							c4 = interSeg.getCurve(),
+							c3 = c4.getPrevious(),
+							// Calculate their winding values and tangents.
+							t3 = c3.getTangentAt(ONE, true),
+							t4 = c4.getTangentAt(ZERO, true),
+							// Cross product of the entry and exit tangent
+							// vectors at the intersection, will let us select
+							// the correct countour to traverse next.
+							w3 = t1.cross(t3),
+							w4 = t1.cross(t4);
+						if (w3 * w4 !== 0) {
+							// Do not attempt to switch contours if we aren't
+							// sure that there is a possible candidate.
+							var curve = w3 < w4 ? c3 : c4,
+								nextCurve = operator(curve._segment1._winding)
+									? curve
+									: w3 < w4 ? c4 : c3,
+								nextSeg = nextCurve._segment1;
+							dir = nextCurve === c3 ? -1 : 1;
+							// If we didn't find a suitable direction for next
+							// contour to traverse, stay on the same contour.
+							if (nextSeg._visited && seg._path !== nextSeg._path
+										|| !operator(nextSeg._winding)) {
+								dir = 1;
+							} else {
+								// Switch to the intersection segment.
+								seg._visited = interSeg._visited;
+								seg = interSeg;
+								if (nextSeg._visited)
+									dir = 1;
+							}
+						} else {
+							dir = 1;
+						}
 					}
 					handleOut = dir > 0 ? seg._handleOut : seg._handleIn;
 				}
@@ -469,12 +440,12 @@ PathItem.inject(new function() {
 		 * Returns the winding contribution of the given point with respect to
 		 * this PathItem.
 		 *
-		 * @param  {Point} point the location for which to determine the winding
+		 * @param {Point} point the location for which to determine the winding
 		 * direction
-		 * @param  {Boolean} horizontal whether we need to consider this point
-		 * as part of a horizontal curve
-		 * @param  {Boolean} testContains whether we need to consider this point 
-		 * as part of stationary points on the curve itself, used when checking 
+		 * @param {Boolean} horizontal whether we need to consider this point as
+		 * part of a horizontal curve
+		 * @param {Boolean} testContains whether we need to consider this point
+		 * as part of stationary points on the curve itself, used when checking
 		 * the winding about a point.
 		 * @return {Number} the winding number
 		 */
@@ -488,7 +459,7 @@ PathItem.inject(new function() {
 		 *
 		 * Merges the geometry of the specified path from this path's
 		 * geometry and returns the result as a new path item.
-		 * 
+		 *
 		 * @param {PathItem} path the path to unite with
 		 * @return {PathItem} the resulting path item
 		 */
@@ -501,7 +472,7 @@ PathItem.inject(new function() {
 		/**
 		 * Intersects the geometry of the specified path with this path's
 		 * geometry and returns the result as a new path item.
-		 * 
+		 *
 		 * @param {PathItem} path the path to intersect with
 		 * @return {PathItem} the resulting path item
 		 */
@@ -514,7 +485,7 @@ PathItem.inject(new function() {
 		/**
 		 * Subtracts the geometry of the specified path from this path's
 		 * geometry and returns the result as a new path item.
-		 * 
+		 *
 		 * @param {PathItem} path the path to subtract
 		 * @return {PathItem} the resulting path item
 		 */
@@ -529,18 +500,18 @@ PathItem.inject(new function() {
 		/**
 		 * Excludes the intersection of the geometry of the specified path with
 		 * this path's geometry and returns the result as a new group item.
-		 * 
+		 *
 		 * @param {PathItem} path the path to exclude the intersection of
 		 * @return {Group} the resulting group item
 		 */
 		exclude: function(path) {
 			return new Group([this.subtract(path), path.subtract(this)]);
 		},
-		
+
 		/**
 		 * Splits the geometry of this path along the geometry of the specified
 		 * path returns the result as a new group item.
-		 * 
+		 *
 		 * @param {PathItem} path the path to divide by
 		 * @return {Group} the resulting group item
 		 */
@@ -644,13 +615,57 @@ Path.inject(/** @lends Path# */{
 					p2x = p2._x, p2y = p2._y;
 				handleCurve([p1x, p1y, p1x, p1y, p2x, p2y, p2x, p2y]);
 			}
-			// Link first and last curves
-			var first = monoCurves[0],
-				last = monoCurves[monoCurves.length - 1];
-			first.previous = last;
-			last.next = first;
+			if (monoCurves.length > 0) {
+				// Link first and last curves
+				var first = monoCurves[0],
+					last = monoCurves[monoCurves.length - 1];
+				first.previous = last;
+				last.next = first;
+			}
 		}
 		return monoCurves;
+	},
+
+	/**
+	 * Returns a point that is guaranteed to be inside the path.
+	 *
+	 * @type Point
+	 * @bean
+	 */
+	getInteriorPoint: function() {
+		var bounds = this.getBounds(),
+			point = bounds.getCenter(true);
+		if (!this.contains(point)) {
+			// Since there is no guarantee that a poly-bezier path contains
+			// the center of its bounding rectangle, we shoot a ray in
+			// +x direction from the center and select a point between
+			// consecutive intersections of the ray
+			var curves = this._getMonoCurves(),
+				roots = [],
+				y = point.y,
+				xIntercepts = [];
+			for (var i = 0, l = curves.length; i < l; i++) {
+				var values = curves[i].values;
+				if ((curves[i].winding === 1
+						&& y >= values[1] && y <= values[7]
+						|| y >= values[7] && y <= values[1])
+						&& Curve.solveCubic(values, 1, y, roots, 0, 1) > 0) {
+					for (var j = roots.length - 1; j >= 0; j--)
+						xIntercepts.push(Curve.evaluate(values, roots[j], 0).x);
+				}
+				if (xIntercepts.length > 1)
+					break;
+			}
+			point.x = (xIntercepts[0] + xIntercepts[1]) / 2;
+		}
+		return point;
+	},
+
+	reorient: function() {
+		// Paths that are not part of compound paths should never be counter-
+		// clockwise for boolean operations.
+		this.setClockwise(true);
+		return this;
 	}
 });
 
@@ -666,5 +681,33 @@ CompoundPath.inject(/** @lends CompoundPath# */{
 		for (var i = 0, l = children.length; i < l; i++)
 			monoCurves.push.apply(monoCurves, children[i]._getMonoCurves());
 		return monoCurves;
+	},
+
+	/*
+	 * Fixes the orientation of a CompoundPath's child paths by first ordering
+	 * them according to their area, and then making sure that all children are
+	 * of different winding direction than the first child, ecxcept for when
+	 * some individual countours are disjoint, i.e. islands, they are reoriented
+	 * so that:
+	 * - The holes have opposite winding direction.
+	 * - Islands have to have the same winding direction as the first child.
+	 */
+	// NOTE: Does NOT handle self-intersecting CompoundPaths.
+	reorient: function() {
+		var children = this.removeChildren().sort(function(a, b) {
+			return b.getBounds().getArea() - a.getBounds().getArea();
+		});
+		this.addChildren(children);
+		var clockwise = children[0].isClockwise();
+		for (var i = 1, l = children.length; i < l; i++) { // Skip first child
+			var point = children[i].getInteriorPoint(),
+				counters = 0;
+			for (var j = i - 1; j >= 0; j--) {
+				if (children[j].contains(point))
+					counters++;
+			}
+			children[i].setClockwise(counters % 2 === 0 && clockwise);
+		}
+		return this;
 	}
 });

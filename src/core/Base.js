@@ -56,11 +56,13 @@ Base.inject(/** @lends Base# */{
 	 *
 	 * @param {Object} props an object describing the properties to set
 	 * @param {Object} [exclude=undefined] a lookup table listing properties to
-	 * exclude.
+	 * exclude
+	 * @param {Boolean} [dontCheck=false] whether to perform a
+	 * Base.isPlainObject() check on props or not
 	 * @return {Boolean} {@true if the object is a plain object}
 	 */
-	_set: function(props, exclude) {
-		if (props && Base.isPlainObject(props)) {
+	_set: function(props, exclude, dontCheck) {
+		if (props && (dontCheck || Base.isPlainObject(props))) {
 			// If props is a filtering object, we need to execute hasOwnProperty
 			// on the original object (it's parent / prototype). See _filtered
 			// inheritance trick in the argument reading code.
@@ -100,7 +102,7 @@ Base.inject(/** @lends Base# */{
 		 * Checks if two values or objects are equals to each other, by using
 		 * their equals() methods if available, and also comparing elements of
 		 * arrays and properties of objects.
-		 */ 
+		 */
 		equals: function(obj1, obj2) {
 			function checkKeys(o1, o2) {
 				for (var i in o1)
@@ -154,7 +156,7 @@ Base.inject(/** @lends Base# */{
 		 * @param {Number} length the amount of elements that can be read
 		 * @param {Object} options {@code options.readNull} controls whether
 		 * null is returned or converted. {@code options.clone} controls whether
-		 * passed objects should be cloned if they are already provided in the 
+		 * passed objects should be cloned if they are already provided in the
 		 * required type
 		 */
 		read: function(list, start, options, length) {
@@ -232,7 +234,7 @@ Base.inject(/** @lends Base# */{
 
 		/**
 		 * Allows using of Base.read() mechanism in combination with reading
-		 * named arguments form a passed property object literal. Calling 
+		 * named arguments form a passed property object literal. Calling
 		 * Base.readNamed() can read both from such named properties and normal
 		 * unnamed arguments through Base.read(). In use for example for the
 		 * various Path.Constructors.
@@ -264,7 +266,7 @@ Base.inject(/** @lends Base# */{
 		/**
 		 * @return the named value if the list provides an arguments object,
 		 * {@code null} if the named value is {@code null} or {@code undefined},
-		 * and {@code undefined} if there is no arguments object. 
+		 * and {@code undefined} if there is no arguments object.
 		 * If no name is provided, it returns the whole arguments object.
 		 */
 		getNamed: function(list, name) {
@@ -294,7 +296,7 @@ Base.inject(/** @lends Base# */{
 		},
 
 		/**
-		 * Serializes the passed object into a format that can be passed to 
+		 * Serializes the passed object into a format that can be passed to
 		 * JSON.stringify() for JSON serialization.
 		 */
 		serialize: function(obj, options, compact, dictionary) {
@@ -307,7 +309,7 @@ Base.inject(/** @lends Base# */{
 				// Create a simple dictionary object that handles all the
 				// storing and retrieving of dictionary definitions and
 				// references, e.g. for symbols and gradients. Items that want
-				// to support this need to define globally unique _id attribute. 
+				// to support this need to define globally unique _id attribute.
 				/**
 				 * @namespace
 				 * @private
@@ -381,8 +383,7 @@ Base.inject(/** @lends Base# */{
 		 * first
 		 */
 		deserialize: function(json, create, _data) {
-			var res = json,
-				isRoot = !_data;
+			var res = json;
 			// A _data side-car to deserialize that can hold any kind of
 			// 'global' data across a deserialization. It's currently only used
 			// to hold dictionary definitions.
@@ -412,16 +413,15 @@ Base.inject(/** @lends Base# */{
 					// Create serialized type and pass collected arguments to
 					// constructor().
 					var args = res;
-					// If a create method is provided, handle our own 
+					// If a create method is provided, handle our own
 					// creation. This is used in #importJSON() to pass
 					// on insert = false to all items except layers.
 					if (create) {
-						res = create(type, args, isRoot);
+						res = create(type, args);
 					} else {
 						res = Base.create(type.prototype);
 						type.apply(res, args);
 					}
-					
 				}
 			} else if (Base.isPlainObject(json)) {
 				res = {};
@@ -443,7 +443,7 @@ Base.inject(/** @lends Base# */{
 					typeof json === 'string' ? JSON.parse(json) : json,
 					// Provide our own create function to handle target and
 					// insertion
-					function(type, args, isRoot) {
+					function(type, args) {
 						// If a target is provided and its of the right type,
 						// import right into it.
 						var obj = target && target.constructor === type
@@ -454,8 +454,8 @@ Base.inject(/** @lends Base# */{
 						// we want these to be created on the fly in the active
 						// project into which we're importing (except for if
 						// it's a preexisting target layer).
-						if (!isRoot && args.length === 1 && obj instanceof Item
-								&& (!(obj instanceof Layer) || isTarget)) {
+						if (args.length === 1 && obj instanceof Item
+								&& (isTarget || !(obj instanceof Layer))) {
 							var arg = args[0];
 							if (Base.isPlainObject(arg))
 								arg.insert = false;
