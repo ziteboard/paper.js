@@ -161,6 +161,7 @@ var Shape = Item.extend(/** @lends Shape# */{
      * inherits all settings from it, similar to {@link Item#clone()}.
      *
      * @param {Boolean} [insert=true] specifies whether the new path should be
+<<<<<<< HEAD
      *     inserted into the scene graph. When set to `true`, it is inserted
      *     above the shape item
      * @return {Shape} the newly created path item with the same geometry as
@@ -170,19 +171,36 @@ var Shape = Item.extend(/** @lends Shape# */{
     toPath: function(insert) {
         // TODO: Move to Path.createTYPE creators instead of fake constructors.
         var path = new Path[Base.capitalize(this._type)]({
+=======
+     * inserted into the DOM. When set to {@code true}, it is inserted above the
+     * shape item
+     * @return {Shape} the newly created path item with the same geometry as
+     * this shape item
+     * @see Path#toShape(insert)
+     */
+    toPath: function(insert) {
+        var path = this._clone(new Path[Base.capitalize(this._type)]({
+>>>>>>> skali
             center: new Point(),
             size: this._size,
             radius: this._radius,
             insert: false
+<<<<<<< HEAD
         });
         path.copyAttributes(this);
+=======
+        }), insert);
+>>>>>>> skali
         // The created path will inherit #applyMatrix from this Shape, hence it
         // will always be false.
         // Respect the setting of paper.settings.applyMatrix for new paths:
         if (paper.settings.applyMatrix)
             path.setApplyMatrix(true);
+<<<<<<< HEAD
         if (insert === undefined || insert)
             path.insertAbove(this);
+=======
+>>>>>>> skali
         return path;
     },
 

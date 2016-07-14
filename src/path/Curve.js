@@ -445,6 +445,7 @@ var Curve = Base.extend(/** @lends Curve# */{
      * new curve. If the modified curve belongs to a path item, the second part
      * is also added to the path.
      *
+<<<<<<< HEAD
      * @param {Number|CurveLocation} location the offset or location on the
      *     curve at which to divide
      * @return {Curve} the second part of the divided curve, if the offset is
@@ -474,6 +475,20 @@ var Curve = Base.extend(/** @lends Curve# */{
         // Only divide if not at the beginning or end.
         var tMin = /*#=*/Numerical.CURVETIME_EPSILON,
             tMax = 1 - tMin,
+=======
+     * @name Curve#divide
+     * @function
+     * @param {Number} [offset=0.5] the offset on the curve at which to split,
+     * or the curve time parameter if {@code isParameter} is {@code true}
+     * @param {Boolean} [isParameter=false] pass {@code true} if {@code offset}
+     * is a curve time parameter
+     * @return {Curve} the second part of the divided curve
+     */
+    // TODO: Rename to divideAt()?
+    divide: function(offset, isParameter, ignoreLinear) {
+        var parameter = this._getParameter(offset, isParameter),
+            tolerance = /*#=*/Numerical.TOLERANCE,
+>>>>>>> skali
             res = null;
         if (time >= tMin && time <= tMax) {
             var parts = Curve.subdivide(this.getValues(), time),
@@ -518,8 +533,17 @@ var Curve = Base.extend(/** @lends Curve# */{
      * splitting, the path will be open. If the path was open already, splitting
      * will result in two paths.
      *
+<<<<<<< HEAD
      * @param {Number|CurveLocation} location the offset or location on the
      *     curve at which to split
+=======
+     * @name Curve#split
+     * @function
+     * @param {Number} [offset=0.5] the offset on the curve at which to split,
+     * or the curve time parameter if {@code isParameter} is {@code true}
+     * @param {Boolean} [isParameter=false] pass {@code true} if {@code offset}
+     * is a curve time parameter
+>>>>>>> skali
      * @return {Path} the newly created path after splitting, if any
      * @see Path#splitAt(offset)
      */
@@ -641,6 +665,7 @@ statics: /** @lends Curve */{
         return res;
     },
 
+<<<<<<< HEAD
     getTimeOf: function(v, point) {
         // Before solving cubics, compare the beginning and end of the curve
         // with zero epsilon:
@@ -703,6 +728,45 @@ statics: /** @lends Curve */{
                     minT = t;
                     return true;
                 }
+=======
+    getParameterOf: function(v, x, y) {
+        // Handle beginnings and end separately, as they are not detected
+        // sometimes.
+        var tolerance = /*#=*/Numerical.TOLERANCE;
+        if (Math.abs(v[0] - x) < tolerance && Math.abs(v[1] - y) < tolerance)
+            return 0;
+        if (Math.abs(v[6] - x) < tolerance && Math.abs(v[7] - y) < tolerance)
+            return 1;
+        var txs = [],
+            tys = [],
+            sx = Curve.solveCubic(v, 0, x, txs, 0, 1),
+            sy = Curve.solveCubic(v, 1, y, tys, 0, 1),
+            tx, ty;
+        // sx, sy === -1 means infinite solutions:
+        // Loop through all solutions for x and match with solutions for y,
+        // to see if we either have a matching pair, or infinite solutions
+        // for one or the other.
+        for (var cx = 0;  sx === -1 || cx < sx;) {
+            if (sx === -1 || (tx = txs[cx++]) > 0 && tx < 1) {
+                for (var cy = 0; sy === -1 || cy < sy;) {
+                    if (sy === -1 || (ty = tys[cy++]) > 0 && ty < 1) {
+                        // Handle infinite solutions by assigning root of
+                        // the other polynomial
+                        if (sx === -1) {
+                            tx = ty;
+                        } else if (sy === -1) {
+                            ty = tx;
+                        }
+                        // Use average if we're within tolerance
+                        if (Math.abs(tx - ty) < tolerance)
+                            return (tx + ty) * 0.5;
+                    }
+                }
+                // Avoid endless loops here: If sx is infinite and there was
+                // no fitting ty, there's no solution for this bezier
+                if (sx === -1)
+                    break;
+>>>>>>> skali
             }
         }
 
@@ -1053,6 +1117,7 @@ statics: /** @lends Curve */{
      * Calculates the curve-time parameter of the specified offset on the path,
      * relative to the provided start parameter. If offset is a negative value,
      * the parameter is searched to the left of the start parameter. If no start
+<<<<<<< HEAD
      * parameter is provided, a default of `0` for positive values of `offset`
      * and `1` for negative values of `offset`.
      *
@@ -1064,15 +1129,35 @@ statics: /** @lends Curve */{
      */
     getTimeAt: function(offset, start) {
         return Curve.getTimeAt(this.getValues(), offset, start);
+=======
+     * parameter is provided, a default of {@code 0} for positive values of
+     * {@code offset} and {@code 1} for negative values of {@code offset}.
+     *
+     * @param {Number} offset
+     * @param {Number} [start]
+     * @return {Number} the curve time parameter at the specified offset
+     */
+    getParameterAt: function(offset, start) {
+        return Curve.getParameterAt(this.getValues(), offset, start);
+>>>>>>> skali
     },
 
     // TODO: Remove in 1.0.0? (deprecated January 2016):
     /**
+<<<<<<< HEAD
      * @deprecated, use use {@link #getTimeOf(point)} instead.
+=======
+     * Returns the curve time parameter of the specified point if it lies on the
+     * curve, {@code null} otherwise.
+     *
+     * @param {Point} point the point on the curve
+     * @return {Number} the curve time parameter of the specified point
+>>>>>>> skali
      */
     getParameterAt: '#getTimeAt',
 
     /**
+<<<<<<< HEAD
      * Calculates the curve offset at the specified curve-time parameter on
      * the curve.
      *
@@ -1081,11 +1166,31 @@ statics: /** @lends Curve */{
      */
     getOffsetAtTime: function(t) {
         return this.getPartLength(0, t);
+=======
+     * Calculates the curve location at the specified offset or curve time
+     * parameter.
+     *
+     * @param {Number} offset the offset on the curve, or the curve time
+     * parameter if {@code isParameter} is {@code true}
+     * @param {Boolean} [isParameter=false] pass {@code true} if {@code offset}
+     * is a curve time parameter
+     * @return {CurveLocation} the curve location at the specified the offset
+     */
+    getLocationAt: function(offset, isParameter) {
+        var t = isParameter ? offset : this.getParameterAt(offset);
+        return t != null && t >= 0 && t <= 1
+                ? new CurveLocation(this, t)
+                : null;
+>>>>>>> skali
     },
 
     /**
      * Returns the curve location of the specified point if it lies on the
+<<<<<<< HEAD
      * curve, `null` otherwise.
+=======
+     * curve, {@code null} otherwise.
+>>>>>>> skali
      *
      * @param {Point} point the point on the curve
      * @return {CurveLocation} the curve location of the specified point
@@ -1096,7 +1201,11 @@ statics: /** @lends Curve */{
 
     /**
      * Returns the length of the path from its beginning up to up to the
+<<<<<<< HEAD
      * specified point if it lies on the path, `null` otherwise.
+=======
+     * specified point if it lies on the path, {@code null} otherwise.
+>>>>>>> skali
      *
      * @param {Point} point the point on the path
      * @return {Number} the length of the path up to the specified point
@@ -1159,9 +1268,17 @@ statics: /** @lends Curve */{
      *
      * @name Curve#getPointAt
      * @function
+<<<<<<< HEAD
      * @param {Number|CurveLocation} location the offset or location on the
      *     curve
      * @return {Point} the point on the curve at the given location
+=======
+     * @param {Number} offset the offset on the curve, or the curve time
+     * parameter if {@code isParameter} is {@code true}
+     * @param {Boolean} [isParameter=false] pass {@code true} if {@code offset}
+     * is a curve time parameter
+     * @return {Point} the point on the curve at the specified offset
+>>>>>>> skali
      */
 
     /**
@@ -1170,9 +1287,17 @@ statics: /** @lends Curve */{
      *
      * @name Curve#getTangentAt
      * @function
+<<<<<<< HEAD
      * @param {Number|CurveLocation} location the offset or location on the
      *     curve
      * @return {Point} the normalized tangent of the curve at the given location
+=======
+     * @param {Number} offset the offset on the curve, or the curve time
+     * parameter if {@code isParameter} is {@code true}
+     * @param {Boolean} [isParameter=false] pass {@code true} if {@code offset}
+     * is a curve time parameter
+     * @return {Point} the tangent of the curve at the specified offset
+>>>>>>> skali
      */
 
     /**
@@ -1180,6 +1305,7 @@ statics: /** @lends Curve */{
      *
      * @name Curve#getNormalAt
      * @function
+<<<<<<< HEAD
      * @param {Number|CurveLocation} location the offset or location on the
      *     curve
      * @return {Point} the normal of the curve at the given location
@@ -1194,6 +1320,13 @@ statics: /** @lends Curve */{
      * @param {Number|CurveLocation} location the offset or location on the
      *     curve
      * @return {Point} the weighted tangent of the curve at the given location
+=======
+     * @param {Number} offset the offset on the curve, or the curve time
+     * parameter if {@code isParameter} is {@code true}
+     * @param {Boolean} [isParameter=false] pass {@code true} if {@code offset}
+     * is a curve time parameter
+     * @return {Point} the normal of the curve at the specified offset
+>>>>>>> skali
      */
 
     /**
@@ -1215,9 +1348,17 @@ statics: /** @lends Curve */{
      *
      * @name Curve#getCurvatureAt
      * @function
+<<<<<<< HEAD
      * @param {Number|CurveLocation} location the offset or location on the
      *     curve
      * @return {Number} the curvature of the curve at the given location
+=======
+     * @param {Number} offset the offset on the curve, or the curve time
+     * parameter if {@code isParameter} is {@code true}
+     * @param {Boolean} [isParameter=false] pass {@code true} if {@code offset}
+     * is a curve time parameter
+     * @return {Number} the curvature of the curve at the specified offset
+>>>>>>> skali
      */
 
     /**
@@ -1474,9 +1615,15 @@ new function() { // Scope for methods that require private functions
                 // lengths in f(t) below.
                 ds = getLengthIntegrand(v),
                 // Get length of total range
+<<<<<<< HEAD
                 rangeLength = Curve.getLength(v, a, b, ds),
                 diff = abs(offset) - rangeLength;
             if (abs(diff) < epsilon) {
+=======
+                rangeLength = Numerical.integrate(ds, a, b,
+                        getIterations(a, b));
+            if (abs(offset - rangeLength) < tolerance) {
+>>>>>>> skali
                 // Matched the end:
                 return forward ? b : a;
             } else if (diff > epsilon) {
@@ -1606,6 +1753,17 @@ new function() { // Scope for intersection using bezier fat-line clipping
             dp1 = getSignedDistance(q0x, q0y, q3x, q3y, v1[2], v1[3]),
             dp2 = getSignedDistance(q0x, q0y, q3x, q3y, v1[4], v1[5]),
             dp3 = getSignedDistance(q0x, q0y, q3x, q3y, v1[6], v1[7]),
+<<<<<<< HEAD
+=======
+            tMinNew, tMaxNew, tDiff;
+        if (q0x === q3x && uMax - uMin < tolerance && recursion > 3) {
+            // The fatline of Q has converged to a point, the clipping is not
+            // reliable. Return the value we have even though we will miss the
+            // precision.
+            tMaxNew = tMinNew = (tMax + tMin) / 2;
+            tDiff = 0;
+        } else {
+>>>>>>> skali
             // Get the top and bottom parts of the convex-hull
             hull = getConvexHull(dp0, dp1, dp2, dp3),
             top = hull[0],

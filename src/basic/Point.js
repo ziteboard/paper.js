@@ -430,7 +430,11 @@ var Point = Base.extend(/** @lends Point# */{
      *
      * @param {Number} [length=1] The length of the normalized vector
      * @return {Point} the normalized vector of the vector that is represented
+<<<<<<< HEAD
      *     by this point's coordinates
+=======
+     * by this point's coordinates
+>>>>>>> skali
      */
     normalize: function(length) {
         if (length === undefined)
@@ -704,9 +708,16 @@ var Point = Base.extend(/** @lends Point# */{
      * @param {Point} point the vector to check against
      * @return {Boolean} {@true it is collinear}
      */
+<<<<<<< HEAD
     isCollinear: function(/* point */) {
         var point = Point.read(arguments);
         return Point.isCollinear(this.x, this.y, point.x, point.y);
+=======
+    isCollinear: function(point) {
+        // NOTE: Numerical.EPSILON is too small, breaking shape-path-shape
+        // conversion test.
+        return Math.abs(this.cross(point)) < /*#=*/Numerical.TOLERANCE;
+>>>>>>> skali
     },
 
     // TODO: Remove version with typo after a while (deprecated June 2015)
@@ -719,9 +730,16 @@ var Point = Base.extend(/** @lends Point# */{
      * @param {Point} point the vector to check against
      * @return {Boolean} {@true it is orthogonal}
      */
+<<<<<<< HEAD
     isOrthogonal: function(/* point */) {
         var point = Point.read(arguments);
         return Point.isOrthogonal(this.x, this.y, point.x, point.y);
+=======
+    isOrthogonal: function(point) {
+        // NOTE: Numerical.EPSILON is too small, breaking shape-path-shape
+        // conversion test.
+        return Math.abs(this.dot(point)) < /*#=*/Numerical.TOLERANCE;
+>>>>>>> skali
     },
 
     /**
@@ -771,7 +789,11 @@ var Point = Base.extend(/** @lends Point# */{
      * Both points are interpreted as vectors.
      *
      * @param {Point} point
+<<<<<<< HEAD
      * @return {Point} the projection of the point onto another point
+=======
+     * @return {Point} the projection of the point on another point
+>>>>>>> skali
      */
     project: function(/* point */) {
         var point = Point.read(arguments),

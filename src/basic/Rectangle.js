@@ -475,10 +475,17 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      */
 
     /**
+<<<<<<< HEAD
      * The area of the rectangle.
      *
      * @bean
      * @type Number
+=======
+     * The area of the rectangle in square points.
+     *
+     * @type Number
+     * @bean
+>>>>>>> skali
      */
     getArea: function() {
         return this.width * this.height;
@@ -659,7 +666,11 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      * Returns a new rectangle representing the intersection of this rectangle
      * with the specified rectangle.
      *
+<<<<<<< HEAD
      * @param {Rectangle} rect the rectangle to be intersected with this
+=======
+     * @param {Rectangle} rect The rectangle to be intersected with this
+>>>>>>> skali
      * rectangle
      * @return {Rectangle} the largest rectangle contained in both the specified
      * rectangle and in this rectangle

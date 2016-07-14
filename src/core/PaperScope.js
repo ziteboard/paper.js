@@ -122,6 +122,7 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
      * @name PaperScope#settings
      * @type Object
      *
+<<<<<<< HEAD
      * @option [settings.insertItems=true] {Boolean} controls whether newly
      *     created items are automatically inserted into the scene graph, by
      *     adding them to {@link Project#getActiveLayer()}
@@ -132,6 +133,11 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
      *     when drawing selections
      * @option [settings.hitTolerance=0] {Number} the default tolerance for hit-
      *     tests, when no value is specified
+=======
+     * @option [settings.applyMatrix=true] {Boolean}
+     * @option [settings.handleSize=4] {Number}
+     * @option [settings.hitTolerance=0] {Number}
+>>>>>>> skali
      */
 
     /**

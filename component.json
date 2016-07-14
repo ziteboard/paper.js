@@ -1,6 +1,10 @@
 {
   "name": "paper",
+<<<<<<< HEAD
   "version": "0.10.2",
+=======
+  "version": "0.9.23",
+>>>>>>> skali
   "description": "The Swiss Army Knife of Vector Graphics Scripting",
   "license": "MIT",
   "repo": "paperjs/paper.js",

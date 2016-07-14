@@ -1,6 +1,10 @@
 {
   "name": "paper",
+<<<<<<< HEAD
   "version": "0.10.2",
+=======
+  "version": "0.9.23",
+>>>>>>> skali
   "description": "The Swiss Army Knife of Vector Graphics Scripting",
   "license": "MIT",
   "homepage": "http://paperjs.org",
@@ -13,6 +17,7 @@
     "Jürg Lehni <juerg@scratchdisk.com> (http://scratchdisk.com)",
     "Jonathan Puckey <jonathan@studiomoniker.com> (http://studiomoniker.com)"
   ],
+<<<<<<< HEAD
   "main": "dist/paper-full.js",
   "scripts": {
     "prepublish": "gulp build minify docs",
@@ -30,6 +35,17 @@
     "AUTHORS.md",
     "dist/",
     "examples/",
+=======
+  "main": "dist/paper-node.js",
+  "jspm": {
+    "main": "dist/paper-core.js"
+  },
+  "browser": "dist/paper-full.js",
+  "files": [
+    "AUTHORS.md",
+    "dist/",
+    "examples/Node.js",
+>>>>>>> skali
     "LICENSE.txt",
     "README.md"
   ],
@@ -44,6 +60,7 @@
     "canvas": "^1.3.5"
   },
   "devDependencies": {
+<<<<<<< HEAD
     "acorn": "~0.5.0",
     "del": "^2.2.1",
     "extend": "^3.0.0",
@@ -81,6 +98,10 @@
     "source-map-support": false,
     "./dist/node/window.js": false,
     "./dist/node/extend.js": false
+=======
+    "uglify-js": "~2.4.23",
+    "prepro": "~0.8.3"
+>>>>>>> skali
   },
   "keywords": [
     "vector",

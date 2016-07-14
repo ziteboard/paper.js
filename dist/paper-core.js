@@ -1,5 +1,9 @@
 /*!
+<<<<<<< HEAD
  * Paper.js v0.10.2 - The Swiss Army Knife of Vector Graphics Scripting.
+=======
+ * Paper.js v0.9.25 - The Swiss Army Knife of Vector Graphics Scripting.
+>>>>>>> skali
  * http://paperjs.org/
  *
  * Copyright (c) 2011 - 2016, Juerg Lehni & Jonathan Puckey
@@ -9,7 +13,11 @@
  *
  * All rights reserved.
  *
+<<<<<<< HEAD
  * Date: Sat Jul 9 20:56:58 2016 +0200
+=======
+ * Date: Sun Oct 25 11:23:38 2015 +0100
+>>>>>>> skali
  *
  ***
  *
@@ -170,6 +178,7 @@ var Base = new function() {
 			var base = this,
 				ctor,
 				proto;
+<<<<<<< HEAD
 			for (var i = 0, obj, l = arguments.length;
 					i < l && !(ctor && proto); i++) {
 				obj = arguments[i];
@@ -180,6 +189,15 @@ var Base = new function() {
 				base.apply(this, arguments);
 			};
 			proto = ctor.prototype = proto || create(this.prototype);
+=======
+			for (var i = 0, l = arguments.length; i < l; i++)
+				if (ctor = arguments[i].initialize)
+					break;
+			ctor = ctor || function() {
+				base.apply(this, arguments);
+			};
+			proto = ctor.prototype = create(this.prototype);
+>>>>>>> skali
 			define(proto, 'constructor',
 					{ value: ctor, writable: true, configurable: true });
 			inject(ctor, this, true);
@@ -277,9 +295,25 @@ Base.inject({
 		return Base.serialize(this);
 	},
 
+<<<<<<< HEAD
 	_set: function(props) {
 		if (props && Base.isPlainObject(props))
 			return Base.filter(this, props);
+=======
+	_set: function(props, exclude, dontCheck) {
+		if (props && (dontCheck || Base.isPlainObject(props))) {
+			var keys = Object.keys(props._filtering || props);
+			for (var i = 0, l = keys.length; i < l; i++) {
+				var key = keys[i];
+				if (!(exclude && exclude[key])) {
+					var value = props[key];
+					if (value !== undefined)
+						this[key] = value;
+				}
+			}
+			return true;
+		}
+>>>>>>> skali
 	},
 
 	statics: {
@@ -426,8 +460,12 @@ Base.inject({
 
 		serialize: function(obj, options, compact, dictionary) {
 			options = options || {};
+<<<<<<< HEAD
 
 			var isRoot = !dictionary,
+=======
+			var root = !dictionary,
+>>>>>>> skali
 				res;
 			if (isRoot) {
 				options.formatter = new Formatter(options.precision);
@@ -481,7 +519,11 @@ Base.inject({
 					: res;
 		},
 
+<<<<<<< HEAD
 		deserialize: function(json, create, _data, _setDictionary, _isRoot) {
+=======
+		deserialize: function(json, create, _data, _isDictionary) {
+>>>>>>> skali
 			var res = json,
 				isFirst = !_data,
 				hasDictionary = isFirst && json && json.length
@@ -490,6 +532,7 @@ Base.inject({
 			if (Array.isArray(json)) {
 				var type = json[0],
 					isDictionary = type === 'dictionary';
+<<<<<<< HEAD
 				if (json.length == 1 && /^#/.test(type)) {
 					return _data.dictionary[type];
 				}
@@ -499,6 +542,17 @@ Base.inject({
 					res.push(Base.deserialize(json[i], create, _data,
 							isDictionary, hasDictionary));
 				}
+=======
+				if (json.length == 1 && /^#/.test(type))
+					return _data.dictionary[type];
+				type = Base.exports[type];
+				res = [];
+				if (_isDictionary)
+					_data.dictionary = res;
+				for (var i = type ? 1 : 0, l = json.length; i < l; i++)
+					res.push(Base.deserialize(json[i], create, _data,
+							isDictionary));
+>>>>>>> skali
 				if (type) {
 					var args = res;
 					if (create) {
@@ -510,7 +564,11 @@ Base.inject({
 				}
 			} else if (Base.isPlainObject(json)) {
 				res = {};
+<<<<<<< HEAD
 				if (_setDictionary)
+=======
+				if (_isDictionary)
+>>>>>>> skali
 					_data.dictionary = res;
 				for (var key in json)
 					res[key] = Base.deserialize(json[key], create, _data);
@@ -519,7 +577,20 @@ Base.inject({
 		},
 
 		exportJSON: function(obj, options) {
+			var _ref, _b;
+			if ((typeof obj !== "undefined" && obj !== null ? (_ref = obj.data) != null ? _ref.timeID : void 0 : void 0) != null) {
+			  _b = true
+				timeID = obj.data.timeID + 0
+			} else {
+				_b = false
+			}
 			var json = Base.serialize(obj, options);
+			if(_b){
+				if(json[1].data.timeID !== timeID){
+					//console.log('exportJSON bug detected and fixed.')
+				}
+				json[1].data.timeID = timeID
+			}
 			return options && options.asString === false
 					? json
 					: JSON.stringify(json);
@@ -643,11 +714,16 @@ var Emitter = {
 		var handlers = this._callbacks && this._callbacks[type];
 		if (!handlers)
 			return false;
+<<<<<<< HEAD
 		var args = [].slice.call(arguments, 1),
 			setTarget = event && event.target && !event.currentTarget;
 		handlers = handlers.slice();
 		if (setTarget)
 			event.currentTarget = this;
+=======
+		var args = [].slice.call(arguments, 1);
+		handlers = handlers.slice();
+>>>>>>> skali
 		for (var i = 0, l = handlers.length; i < l; i++) {
 			if (handlers[i].apply(this, args) === false) {
 				if (event && event.stop)
@@ -672,6 +748,7 @@ var Emitter = {
 		var types = this._eventTypes,
 			handlers = this._callbacks,
 			key = install ? 'install' : 'uninstall';
+<<<<<<< HEAD
 		if (types) {
 			for (var type in handlers) {
 				if (handlers[type].length > 0) {
@@ -681,6 +758,16 @@ var Emitter = {
 						func.call(this, type);
 				}
 		}
+=======
+		for (var type in handlers) {
+			if (handlers[type].length > 0) {
+				var types = this._eventTypes,
+					entry = types && types[type],
+					func = entry && entry[key];
+				if (func)
+					func.call(this, type);
+			}
+>>>>>>> skali
 		}
 	},
 
@@ -741,6 +828,7 @@ var PaperScope = Base.extend({
 			};
 			CanvasProvider.release(ctx);
 		}
+<<<<<<< HEAD
 		if (!this.agent) {
 			var user = self.navigator.userAgent.toLowerCase(),
 				os = (/(darwin|win|mac|linux|freebsd|sunos)/.exec(user)||[])[0],
@@ -750,6 +838,20 @@ var PaperScope = Base.extend({
 				agent[platform] = true;
 			user.replace(
 				/(opera|chrome|safari|webkit|firefox|msie|trident|atom|node)\/?\s*([.\d]+)(?:.*version\/([.\d]+))?(?:.*rv\:v?([.\d]+))?/g,
+=======
+
+		if (!this.browser) {
+			var agent = navigator.userAgent.toLowerCase(),
+				platform = (/(win)/.exec(agent)
+						|| /(mac)/.exec(agent)
+						|| /(linux)/.exec(agent)
+						|| [])[0],
+				browser = proto.browser = { platform: platform };
+			if (platform)
+				browser[platform] = true;
+			agent.replace(
+				/(opera|chrome|safari|webkit|firefox|msie|trident|atom)\/?\s*([.\d]+)(?:.*version\/([.\d]+))?(?:.*rv\:([.\d]+))?/g,
+>>>>>>> skali
 				function(all, n, v1, v2, rv) {
 					if (!agent.chrome) {
 						var v = n === 'opera' ? v2 :
@@ -769,7 +871,11 @@ var PaperScope = Base.extend({
 		}
 	},
 
+<<<<<<< HEAD
 	version: "0.10.2",
+=======
+	version: "0.9.25",
+>>>>>>> skali
 
 	getView: function() {
 		var project = this.project;
@@ -965,6 +1071,7 @@ var Numerical = new function() {
 	var abs = Math.abs,
 		sqrt = Math.sqrt,
 		pow = Math.pow,
+<<<<<<< HEAD
 		log2 = Math.log2 || function(x) {
 			return Math.log(x) * Math.LOG2E;
 		},
@@ -1007,6 +1114,15 @@ var Numerical = new function() {
 				: 0;
 	}
 
+=======
+		EPSILON = 1e-12,
+		MACHINE_EPSILON = 1.12e-16;
+
+	function clip(value, min, max) {
+		return value < min ? min : value > max ? max : value;
+	}
+
+>>>>>>> skali
 	return {
 		TOLERANCE: 1e-6,
 		EPSILON: EPSILON,
@@ -1015,7 +1131,11 @@ var Numerical = new function() {
 		GEOMETRIC_EPSILON: 2e-7,
 		WINDING_EPSILON: 2e-7,
 		TRIGONOMETRIC_EPSILON: 1e-7,
+<<<<<<< HEAD
 		CLIPPING_EPSILON: 1e-9,
+=======
+		CLIPPING_EPSILON: 1e-7,
+>>>>>>> skali
 		KAPPA: 4 * (sqrt(2) - 1) / 3,
 
 		isZero: function(val) {
@@ -1058,6 +1178,7 @@ var Numerical = new function() {
 		},
 
 		solveQuadratic: function(a, b, c, roots, min, max) {
+<<<<<<< HEAD
 			var x1, x2 = Infinity;
 			if (abs(a) < EPSILON) {
 				if (abs(b) < EPSILON)
@@ -1096,10 +1217,54 @@ var Numerical = new function() {
 			if (x2 !== x1
 					&& isFinite(x2) && (boundless || x2 > minB && x2 < maxB))
 				roots[count++] = boundless ? x2 : clamp(x2, min, max);
+=======
+			var count = 0,
+				eMin = min - EPSILON,
+				eMax = max + EPSILON,
+				x1, x2 = Infinity,
+				B = b,
+				D;
+			b /= -2;
+			D = b * b - a * c;
+			if (D !== 0 && abs(D) < MACHINE_EPSILON) {
+				var gmC = pow(abs(a * b * c), 1 / 3);
+				if (gmC < 1e-8) {
+					var mult = pow(10,
+							abs(Math.floor(Math.log(gmC) * Math.LOG10E)));
+					if (!isFinite(mult))
+						mult = 0;
+					a *= mult;
+					b *= mult;
+					c *= mult;
+					D = b * b - a * c;
+				}
+			}
+			if (abs(a) < EPSILON) {
+				if (abs(B) < EPSILON)
+					return abs(c) < EPSILON ? -1 : 0;
+				x1 = -c / B;
+			} else if (D >= -MACHINE_EPSILON) {
+				var Q = D < 0 ? 0 : sqrt(D),
+					R = b + (b < 0 ? -Q : Q);
+				if (R === 0) {
+					x1 = c / a;
+					x2 = -x1;
+				} else {
+					x1 = R / a;
+					x2 = c / R;
+				}
+			}
+			if (isFinite(x1) && (min == null || x1 > eMin && x1 < eMax))
+				roots[count++] = min == null ? x1 : clip(x1, min, max);
+			if (x2 !== x1
+					&& isFinite(x2) && (min == null || x2 > eMin && x2 < eMax))
+				roots[count++] = min == null ? x2 : clip(x2, min, max);
+>>>>>>> skali
 			return count;
 		},
 
 		solveCubic: function(a, b, c, d, roots, min, max) {
+<<<<<<< HEAD
 			var f = getNormalizationFactor(abs(a), abs(b), abs(c), abs(d)),
 				x, b1, c2, qd, q;
 			if (f) {
@@ -1118,6 +1283,10 @@ var Numerical = new function() {
 				q = c2 * x + d;
 			}
 
+=======
+			var count = 0,
+				x, b1, c2;
+>>>>>>> skali
 			if (abs(a) < EPSILON) {
 				a = b;
 				b1 = c;
@@ -1146,12 +1315,19 @@ var Numerical = new function() {
 					}
 				}
 			}
+<<<<<<< HEAD
 			var count = Numerical.solveQuadratic(a, b1, c2, roots, min, max),
 				boundless = min == null;
 			if (isFinite(x) && (count === 0
 					|| count > 0 && x !== roots[0] && x !== roots[1])
 					&& (boundless || x > min - EPSILON && x < max + EPSILON))
 				roots[count++] = boundless ? x : clamp(x, min, max);
+=======
+			var count = Numerical.solveQuadratic(a, b1, c2, roots, min, max);
+			if (isFinite(x) && (count === 0 || x !== roots[count - 1])
+					&& (min == null || x > min - EPSILON && x < max + EPSILON))
+				roots[count++] = min == null ? x : clip(x, min, max);
+>>>>>>> skali
 			return count;
 		}
 	};
@@ -1161,9 +1337,16 @@ var UID = {
 	_id: 1,
 	_pools: {},
 
+<<<<<<< HEAD
 	get: function(name) {
 		if (name) {
 			var pool = this._pools[name];
+=======
+	get: function(ctor) {
+		if (ctor) {
+			var name = ctor._class,
+				pool = this._pools[name];
+>>>>>>> skali
 			if (!pool)
 				pool = this._pools[name] = { _id: 1 };
 			return pool._id++;
@@ -1387,7 +1570,11 @@ var Point = Base.extend({
 	isClose: function() {
 		var point = Point.read(arguments),
 			tolerance = Base.read(arguments);
+<<<<<<< HEAD
 		return this.getDistance(point) <= tolerance;
+=======
+		return this.getDistance(point) < tolerance;
+>>>>>>> skali
 	},
 
 	isCollinear: function() {
@@ -2860,6 +3047,69 @@ var Project = PaperScopeItem.extend({
 	}
 });
 
+<<<<<<< HEAD
+=======
+var Symbol = Base.extend({
+	_class: 'Symbol',
+
+	initialize: function Symbol(item, dontCenter) {
+		this._id = UID.get();
+		this.project = paper.project;
+		this.project.symbols.push(this);
+		if (item)
+			this.setDefinition(item, dontCenter);
+	},
+
+	_serialize: function(options, dictionary) {
+		return dictionary.add(this, function() {
+			return Base.serialize([this._class, this._definition],
+					options, false, dictionary);
+		});
+	},
+
+	_changed: function(flags) {
+		if (flags & 8) {
+			Item._clearBoundsCache(this);
+		}
+		if (flags & 1) {
+			this.project._needsUpdate = true;
+		}
+	},
+
+	getDefinition: function() {
+		return this._definition;
+	},
+
+	setDefinition: function(item, _dontCenter) {
+		if (item._parentSymbol)
+			item = item.clone();
+		if (this._definition)
+			this._definition._parentSymbol = null;
+		this._definition = item;
+		item.remove();
+		item.setSelected(false);
+		if (!_dontCenter)
+			item.setPosition(new Point());
+		item._parentSymbol = this;
+		this._changed(9);
+	},
+
+	place: function(position) {
+		return new PlacedSymbol(this, position);
+	},
+
+	clone: function() {
+		return new Symbol(this._definition.clone(false));
+	},
+
+	equals: function(symbol) {
+		return symbol === this
+				|| symbol && this.definition.equals(symbol.definition)
+				|| false;
+	}
+});
+
+>>>>>>> skali
 var Item = Base.extend(Emitter, {
 	statics: {
 		extend: function extend(src) {
@@ -2944,11 +3194,18 @@ new function() {
 		var hasProps = props && Base.isPlainObject(props),
 			internal = hasProps && props.internal === true,
 			matrix = this._matrix = new Matrix(),
+<<<<<<< HEAD
 			project = hasProps && props.project || paper.project,
 			settings = paper.settings;
 		this._id = internal ? null : UID.get();
 		this._parent = this._index = null;
 		this._applyMatrix = this._canApplyMatrix && settings.applyMatrix;
+=======
+			project = hasProps && props.project || paper.project;
+		if (!internal)
+			this._id = UID.get();
+		this._applyMatrix = this._canApplyMatrix && paper.settings.applyMatrix;
+>>>>>>> skali
 		if (point)
 			matrix.translate(point);
 		matrix._owner = this;
@@ -2965,9 +3222,45 @@ new function() {
 				internal: true, insert: true, project: true, parent: true
 			});
 		}
+<<<<<<< HEAD
 		return hasProps;
 	},
 
+=======
+		if (hasProps && props !== Item.NO_INSERT)
+			this._set(props, { insert: true, project: true, parent: true },
+					true);
+		return hasProps;
+	},
+
+	_events: Base.each(['onMouseDown', 'onMouseUp', 'onMouseDrag', 'onClick',
+			'onDoubleClick', 'onMouseMove', 'onMouseEnter', 'onMouseLeave'],
+		function(name) {
+			this[name] = {
+				install: function(type) {
+					this.getView()._installEvent(type);
+				},
+
+				uninstall: function(type) {
+					this.getView()._uninstallEvent(type);
+				}
+			};
+		}, {
+			onFrame: {
+				install: function() {
+					this.getView()._animateItem(this, true);
+				},
+
+				uninstall: function() {
+					this.getView()._animateItem(this, false);
+				}
+			},
+
+			onLoad: {}
+		}
+	),
+
+>>>>>>> skali
 	_serialize: function(options, dictionary) {
 		var props = {},
 			that = this;
@@ -3189,14 +3482,37 @@ new function() {
 		getHandleBounds: { handle: true },
 		getInternalBounds: { internal: true }
 	},
+<<<<<<< HEAD
 	function(options, key) {
 		this[key] = function(matrix) {
 			return this.getBounds(matrix, options);
+=======
+
+	_pivot: null,
+}, Base.each(['bounds', 'strokeBounds', 'handleBounds', 'roughBounds',
+		'internalBounds', 'internalRoughBounds'],
+	function(key) {
+		var getter = 'get' + Base.capitalize(key),
+			match = key.match(/^internal(.*)$/),
+			internalGetter = match ? 'get' + match[1] : null;
+		this[getter] = function(_matrix) {
+			var boundsGetter = this._boundsGetter,
+				name = !internalGetter && (typeof boundsGetter === 'string'
+						? boundsGetter : boundsGetter && boundsGetter[getter])
+						|| getter,
+				bounds = this._getCachedBounds(name, _matrix, this,
+						internalGetter);
+			return key === 'bounds'
+					? new LinkedRectangle(bounds.x, bounds.y, bounds.width,
+							bounds.height, this, 'setBounds')
+					: bounds;
+>>>>>>> skali
 		};
 	},
 {
 	beans: true,
 
+<<<<<<< HEAD
 	getBounds: function(matrix, options) {
 		var hasMatrix = options || matrix instanceof Matrix,
 			opts = Base.set({}, hasMatrix ? options : matrix,
@@ -3208,6 +3524,31 @@ new function() {
 				? new LinkedRectangle(bounds.x, bounds.y, bounds.width,
 						bounds.height, this, 'setBounds')
 				: bounds;
+=======
+	_getBounds: function(getter, matrix, cacheItem) {
+		var children = this._children;
+		if (!children || children.length == 0)
+			return new Rectangle();
+		Item._updateBoundsCache(this, cacheItem);
+		var x1 = Infinity,
+			x2 = -x1,
+			y1 = x1,
+			y2 = x2;
+		for (var i = 0, l = children.length; i < l; i++) {
+			var child = children[i];
+			if (child._visible && !child.isEmpty()) {
+				var rect = child._getCachedBounds(getter,
+						matrix && matrix.chain(child._matrix), cacheItem);
+				x1 = Math.min(rect.x, x1);
+				y1 = Math.min(rect.y, y1);
+				x2 = Math.max(rect.x + rect.width, x2);
+				y2 = Math.max(rect.y + rect.height, y2);
+			}
+		}
+		return isFinite(x1)
+				? new Rectangle(x1, y1, x2 - x1, y2 - y1)
+				: new Rectangle();
+>>>>>>> skali
 	},
 
 	setBounds: function() {
@@ -3232,6 +3573,7 @@ new function() {
 		this.transform(matrix);
 	},
 
+<<<<<<< HEAD
 	_getBounds: function(matrix, options) {
 		var children = this._children;
 		if (!children || children.length === 0)
@@ -3255,6 +3597,18 @@ new function() {
 			return this._bounds[cacheKey].rect.clone();
 		var bounds = this._getBounds(matrix || _matrix, options);
 		if (cacheKey) {
+=======
+	_getCachedBounds: function(getter, matrix, cacheItem, internalGetter) {
+		matrix = matrix && matrix.orNullIfIdentity();
+		var _matrix = internalGetter ? null : this._matrix.orNullIfIdentity(),
+			cache = (!matrix || matrix.equals(_matrix)) && getter;
+		Item._updateBoundsCache(this._parent || this._parentSymbol, cacheItem);
+		if (cache && this._bounds && this._bounds[cache])
+			return this._bounds[cache].clone();
+		var bounds = this._getBounds(internalGetter || getter,
+				matrix || _matrix, cacheItem);
+		if (cache) {
+>>>>>>> skali
 			if (!this._bounds)
 				this._bounds = {};
 			var cached = this._bounds[cacheKey] = {
@@ -3275,7 +3629,11 @@ new function() {
 
 	statics: {
 		_updateBoundsCache: function(parent, item) {
+<<<<<<< HEAD
 			if (parent && item) {
+=======
+			if (parent) {
+>>>>>>> skali
 				var id = item._id,
 					ref = parent._boundsCache = parent._boundsCache || {
 						ids: {},
@@ -3367,6 +3725,14 @@ new function() {
 	setMatrix: function() {
 		var matrix = this._matrix;
 		matrix.initialize.apply(matrix, arguments);
+<<<<<<< HEAD
+=======
+		if (this._applyMatrix) {
+			this.transform(null, true);
+		} else {
+			this._changed(9);
+		}
+>>>>>>> skali
 	},
 
 	getGlobalMatrix: function(_dontClone) {
@@ -3498,6 +3864,7 @@ new function() {
 		return Base.equals(this._children, item._children);
 	},
 
+<<<<<<< HEAD
 	clone: function(options) {
 		var copy = new this.constructor(Item.NO_INSERT),
 			children = this._children,
@@ -3523,6 +3890,35 @@ new function() {
 			if (name !== orig)
 				copy.setName(name);
 		}
+=======
+	clone: function(insert) {
+		return this._clone(new this.constructor(Item.NO_INSERT), insert);
+	},
+
+	_clone: function(copy, insert, includeMatrix) {
+		var keys = ['_locked', '_visible', '_blendMode', '_opacity',
+				'_clipMask', '_guide'],
+			children = this._children;
+		copy.setStyle(this._style);
+		for (var i = 0, l = children && children.length; i < l; i++) {
+			copy.addChild(children[i].clone(false), true);
+		}
+		for (var i = 0, l = keys.length; i < l; i++) {
+			var key = keys[i];
+			if (this.hasOwnProperty(key))
+				copy[key] = this[key];
+		}
+		if (includeMatrix !== false)
+			copy._matrix.initialize(this._matrix);
+		copy.setApplyMatrix(this._applyMatrix);
+		copy.setPivot(this._pivot);
+		copy.setSelected(this._selected);
+		copy._data = this._data ? Base.clone(this._data) : null;
+		if (insert || insert === undefined)
+			copy.insertAbove(this);
+		if (this._name)
+			copy.setName(this._name, true);
+>>>>>>> skali
 		return copy;
 	},
 
@@ -3611,11 +4007,18 @@ new function() {
 		if (!(item instanceof Item))
 			return false;
 		return this._asPathItem().getIntersections(item._asPathItem(), null,
+<<<<<<< HEAD
 				_matrix, true).length > 0;
 	}
 },
 new function() {
 	function hitTest() {
+=======
+				_matrix || item._matrix, true).length > 0;
+	},
+
+	hitTest: function() {
+>>>>>>> skali
 		return this._hitTest(
 				Point.read(arguments),
 				HitResult.getOptions(arguments));
@@ -3678,7 +4081,14 @@ new function() {
 					: viewMatrix.inverted()._shiftless(),
 			tolerance = Math.max(options.tolerance, 1e-6),
 			tolerancePadding = options._tolerancePadding = new Size(
+<<<<<<< HEAD
 					Path._getStrokePadding(tolerance, strokeMatrix));
+=======
+						Path._getPenPadding(1, totalMatrix.inverted())
+					).multiply(
+						Math.max(options.tolerance, 1e-6)
+					);
+>>>>>>> skali
 		point = matrix._inverseTransform(point);
 		if (!point || !this._children &&
 			!this.getBounds({ internal: true, stroke: true, handle: true })
@@ -3764,11 +4174,16 @@ new function() {
 				if (name.hasOwnProperty(key) && !this.matches(key, name[key]))
 					return false;
 			}
+<<<<<<< HEAD
 			return true;
 		} else if (type === 'function') {
 			return name(this);
 		} else if (name === 'match') {
 			return compare(this);
+=======
+		} else if (type === 'function') {
+			return name(this);
+>>>>>>> skali
 		} else {
 			var value = /^(empty|editable)$/.test(name)
 					? this['is' + Base.capitalize(name)]()
@@ -3803,16 +4218,27 @@ new function() {
 	},
 
 	statics: {
+<<<<<<< HEAD
 		_getItems: function _getItems(item, options, matrix, param, firstOnly) {
 			if (!param) {
 				var obj = typeof options === 'object' && options,
 					overlapping = obj && obj.overlapping,
 					inside = obj && obj.inside,
+=======
+		_getItems: function _getItems(children, match, matrix, param,
+				firstOnly) {
+			if (!param && typeof match === 'object') {
+				var overlapping = match.overlapping,
+					inside = match.inside,
+>>>>>>> skali
 					bounds = overlapping || inside,
 					rect = bounds && Rectangle.read([bounds]);
 				param = {
 					items: [],
+<<<<<<< HEAD
 					recursive: obj && obj.recursive !== false,
+=======
+>>>>>>> skali
 					inside: !!inside,
 					overlapping: !!overlapping,
 					rect: rect,
@@ -3821,6 +4247,7 @@ new function() {
 						insert: false
 					})
 				};
+<<<<<<< HEAD
 				if (obj) {
 					options = Base.filter({}, options, {
 						recursive: true, inside: true, overlapping: true
@@ -3830,6 +4257,14 @@ new function() {
 			var children = item._children,
 				items = param.items,
 				rect = param.rect;
+=======
+				if (bounds)
+					match = Base.set({}, match,
+							{ inside: true, overlapping: true });
+			}
+			var items = param && param.items,
+				rect = param && param.rect;
+>>>>>>> skali
 			matrix = rect && (matrix || new Matrix());
 			for (var i = 0, l = children && children.length; i < l; i++) {
 				var child = children[i],
@@ -3839,8 +4274,13 @@ new function() {
 					var bounds = child.getBounds(childMatrix);
 					if (!rect.intersects(bounds))
 						continue;
+<<<<<<< HEAD
 					if (!(rect.contains(bounds)
 							|| param.overlapping && (bounds.contains(rect)
+=======
+					if (!(param.inside && rect.contains(bounds))
+							&& !(param.overlapping && (bounds.contains(rect)
+>>>>>>> skali
 								|| param.path.intersects(child, childMatrix))))
 						add = false;
 				}
@@ -4418,6 +4858,7 @@ new function() {
 				half = size / 2;
 			ctx.strokeStyle = ctx.fillStyle = color
 					? color.toCanvasStyle(ctx) : '#009dec';
+<<<<<<< HEAD
 			if (itemSelected)
 				this._drawSelected(ctx, mx, selectionItems);
 			if (positionSelected) {
@@ -4441,6 +4882,13 @@ new function() {
 			}
 			if (boundsSelected) {
 				var coords = mx._transformCorners(this.getInternalBounds());
+=======
+			if (this._drawSelected)
+				this._drawSelected(ctx, mx, selectedItems);
+			if (this._boundsSelected) {
+				var half = size / 2,
+					coords = mx._transformCorners(this.getInternalBounds());
+>>>>>>> skali
 				ctx.beginPath();
 				for (var i = 0; i < 8; i++) {
 					ctx[i === 0 ? 'moveTo' : 'lineTo'](coords[i], coords[++i]);
@@ -4690,17 +5138,23 @@ var Shape = Item.extend({
 	},
 
 	toPath: function(insert) {
-		var path = new Path[Base.capitalize(this._type)]({
+		var path = this._clone(new Path[Base.capitalize(this._type)]({
 			center: new Point(),
 			size: this._size,
 			radius: this._radius,
 			insert: false
+<<<<<<< HEAD
 		});
 		path.copyAttributes(this);
 		if (paper.settings.applyMatrix)
 			path.setApplyMatrix(true);
 		if (insert === undefined || insert)
 			path.insertAbove(this);
+=======
+		}), insert);
+		if (paper.settings.applyMatrix)
+			path.setApplyMatrix(true);
+>>>>>>> skali
 		return path;
 	},
 
@@ -4958,7 +5412,12 @@ var Raster = Item.extend({
 			copyCanvas.getContext('2d').drawImage(canvas, 0, 0);
 			this._setImage(copyCanvas);
 		}
+<<<<<<< HEAD
 		this._crossOrigin = source._crossOrigin;
+=======
+		copy._crossOrigin = this._crossOrigin;
+		return this._clone(copy, insert);
+>>>>>>> skali
 	},
 
 	getSize: function() {
@@ -5107,6 +5566,7 @@ var Raster = Item.extend({
 	},
 
 	setSource: function(src) {
+<<<<<<< HEAD
 		var image = new window.Image(),
 			crossOrigin = this._crossOrigin;
 		if (crossOrigin)
@@ -5125,6 +5585,43 @@ var Raster = Item.extend({
 		var image = this._image;
 		if (image)
 			image.crossOrigin = crossOrigin;
+=======
+		var that = this,
+			crossOrigin = this._crossOrigin,
+			image;
+
+		function loaded() {
+			var view = that.getView();
+			if (view) {
+				paper = view._scope;
+				that.setImage(image);
+				that.emit('load');
+				view.update();
+			}
+		}
+
+		image = document.getElementById(src) || new Image();
+		if (crossOrigin)
+			image.crossOrigin = crossOrigin;
+		if (image.naturalWidth && image.naturalHeight) {
+			setTimeout(loaded, 0);
+		} else {
+			DomEvent.add(image, { load: loaded });
+			if (!image.src)
+				image.src = src;
+		}
+		this.setImage(image);
+>>>>>>> skali
+	},
+
+	getCrossOrigin: function() {
+		return this._image && this._image.crossOrigin || this._crossOrigin || '';
+	},
+
+	setCrossOrigin: function(crossOrigin) {
+		this._crossOrigin = crossOrigin;
+		if (this._image)
+			this._image.crossOrigin = crossOrigin;
 	},
 
 	getElement: function() {
@@ -5455,7 +5952,11 @@ var Segment = Base.extend({
 			selection;
 		if (count === 0) {
 		} else if (count === 1) {
+<<<<<<< HEAD
 			if (arg0 && 'point' in arg0) {
+=======
+			if ('point' in arg0) {
+>>>>>>> skali
 				point = arg0.point;
 				handleIn = arg0.handleIn;
 				handleOut = arg0.handleOut;
@@ -5480,6 +5981,7 @@ var Segment = Base.extend({
 			this.setSelection(selection);
 	},
 
+<<<<<<< HEAD
 	_serialize: function(options, dictionary) {
 		var point = this._point,
 			selection = this._selection,
@@ -5489,6 +5991,13 @@ var Segment = Base.extend({
 		if (selection)
 			obj.push(selection);
 		return Base.serialize(obj, options, true, dictionary);
+=======
+	_serialize: function(options) {
+		return Base.serialize(this.hasHandles()
+				? [this._point, this._handleIn, this._handleOut]
+				: this._point,
+				options, true);
+>>>>>>> skali
 	},
 
 	_changed: function(point) {
@@ -5539,6 +6048,7 @@ var Segment = Base.extend({
 
 	hasHandles: function() {
 		return !this._handleIn.isZero() || !this._handleOut.isZero();
+<<<<<<< HEAD
 	},
 
 	clearHandles: function() {
@@ -5558,6 +6068,13 @@ var Segment = Base.extend({
 			path._updateSelection(this, oldSelection, selection);
 			path._changed(129);
 		}
+=======
+	},
+
+	clearHandles: function() {
+		this._handleIn.set(0, 0);
+		this._handleOut.set(0, 0);
+>>>>>>> skali
 	},
 
 	changeSelection: function(flag, selected) {
@@ -5902,6 +6419,17 @@ var Curve = Base.extend({
 		}
 		this._segment1 = seg1 || new Segment(point1, null, handle1);
 		this._segment2 = seg2 || new Segment(point2, handle2, null);
+<<<<<<< HEAD
+=======
+	},
+
+	_serialize: function(options) {
+		return Base.serialize(this.hasHandles()
+				? [this.getPoint1(), this.getHandle1(), this.getHandle2(),
+					this.getPoint2()]
+				: [this.getPoint1(), this.getPoint2()],
+				options, true);
+>>>>>>> skali
 	},
 
 	_serialize: function(options, dictionary) {
@@ -5912,8 +6440,39 @@ var Curve = Base.extend({
 				options, true, dictionary);
 	},
 
+<<<<<<< HEAD
 	_changed: function() {
 		this._length = this._bounds = undefined;
+=======
+	clone: function() {
+		return new Curve(this._segment1, this._segment2);
+	},
+
+	toString: function() {
+		var parts = [ 'point1: ' + this._segment1._point ];
+		if (!this._segment1._handleOut.isZero())
+			parts.push('handle1: ' + this._segment1._handleOut);
+		if (!this._segment2._handleIn.isZero())
+			parts.push('handle2: ' + this._segment2._handleIn);
+		parts.push('point2: ' + this._segment2._point);
+		return '{ ' + parts.join(', ') + ' }';
+	},
+
+	remove: function() {
+		var removed = false;
+		if (this._path) {
+			var segment2 = this._segment2,
+				handleOut = segment2._handleOut;
+			removed = segment2.remove();
+			if (removed)
+				this._segment1._handleOut.set(handleOut.x, handleOut.y);
+		}
+		return removed;
+	},
+
+	getPoint1: function() {
+		return this._segment1._point;
+>>>>>>> skali
 	},
 
 	clone: function() {
@@ -6075,12 +6634,22 @@ var Curve = Base.extend({
 				? location.time : location);
 	},
 
+<<<<<<< HEAD
 	divideAtTime: function(time, _setHandles) {
 		var tMin = 4e-7,
 			tMax = 1 - tMin,
 			res = null;
 		if (time >= tMin && time <= tMax) {
 			var parts = Curve.subdivide(this.getValues(), time),
+=======
+	divide: function(offset, isParameter, _setHandles) {
+		var parameter = this._getParameter(offset, isParameter),
+			tMin = 4e-7,
+			tMax = 1 - tMin,
+			res = null;
+		if (parameter >= tMin && parameter <= tMax) {
+			var parts = Curve.subdivide(this.getValues(), parameter),
+>>>>>>> skali
 				left = parts[0],
 				right = parts[1],
 				setHandles = _setHandles || this.hasHandles(),
@@ -6088,8 +6657,15 @@ var Curve = Base.extend({
 				segment2 = this._segment2,
 				path = this._path;
 			if (setHandles) {
+<<<<<<< HEAD
 				segment1._handleOut.set(left[2] - left[0], left[3] - left[1]);
 				segment2._handleIn.set(right[4] - right[6],right[5] - right[7]);
+=======
+				segment1._handleOut.set(left[2] - left[0],
+						left[3] - left[1]);
+				segment2._handleIn.set(right[4] - right[6],
+						right[5] - right[7]);
+>>>>>>> skali
 			}
 			var x = left[6], y = left[7],
 				segment = new Segment(new Point(x, y),
@@ -6100,7 +6676,10 @@ var Curve = Base.extend({
 				res = this.getNext();
 			} else {
 				this._segment2 = segment;
+<<<<<<< HEAD
 				this._changed();
+=======
+>>>>>>> skali
 				res = new Curve(segment, segment2);
 			}
 		}
@@ -6111,6 +6690,7 @@ var Curve = Base.extend({
 		return this._path ? this._path.splitAt(location) : null;
 	},
 
+<<<<<<< HEAD
 	splitAtTime: function(t) {
 		return this.splitAt(this.getLocationAtTime(t));
 	},
@@ -6129,6 +6709,12 @@ var Curve = Base.extend({
 		return new Curve(this._segment2.reversed(), this._segment1.reversed());
 	},
 
+=======
+	reversed: function() {
+		return new Curve(this._segment2.reversed(), this._segment1.reversed());
+	},
+
+>>>>>>> skali
 	clearHandles: function() {
 		this._segment1._handleOut.set(0, 0);
 		this._segment2._handleIn.set(0, 0);
@@ -6176,6 +6762,7 @@ statics: {
 			c1 = v[coord + 2],
 			c2 = v[coord + 4],
 			p2 = v[coord + 6],
+<<<<<<< HEAD
 			res = 0;
 		if (  !(p1 < val && p2 < val && c1 < val && c2 < val ||
 				p1 > val && p2 > val && c1 > val && c2 > val)) {
@@ -6188,6 +6775,15 @@ statics: {
 	},
 
 	getTimeOf: function(v, point) {
+=======
+			c = 3 * (c1 - p1),
+			b = 3 * (c2 - c1) - c,
+			a = p2 - p1 - c - b;
+		return Numerical.solveCubic(a, b, c, p1 - val, roots, min, max);
+	},
+
+	getParameterOf: function(v, point) {
+>>>>>>> skali
 		var p1 = new Point(v[0], v[1]),
 			p2 = new Point(v[6], v[7]),
 			epsilon = 1e-12,
@@ -6212,7 +6808,11 @@ statics: {
 			 : null;
 	},
 
+<<<<<<< HEAD
 	getNearestTime: function(v, point) {
+=======
+	getNearestParameter: function(v, point) {
+>>>>>>> skali
 		if (Curve.isStraight(v)) {
 			var p1x = v[0], p1y = v[1],
 				p2x = v[6], p2y = v[7],
@@ -6223,7 +6823,11 @@ statics: {
 			var u = ((point.x - p1x) * vx + (point.y - p1y) * vy) / det;
 			return u < 1e-12 ? 0
 				 : u > 0.999999999999 ? 1
+<<<<<<< HEAD
 				 : Curve.getTimeOf(v,
+=======
+				 : Curve.getParameterOf(v,
+>>>>>>> skali
 					new Point(p1x + u * vx, p1y + u * vy));
 		}
 
@@ -6267,6 +6871,15 @@ statics: {
 		return flip
 				? [v[6], v[7], v[4], v[5], v[2], v[3], v[0], v[1]]
 				: v;
+<<<<<<< HEAD
+=======
+	},
+
+	hasHandles: function(v) {
+		var isZero = Numerical.isZero;
+		return !(isZero(v[0] - v[2]) && isZero(v[1] - v[3])
+				&& isZero(v[4] - v[6]) && isZero(v[5] - v[7]));
+>>>>>>> skali
 	},
 
 	isFlatEnough: function(v, flatness) {
@@ -6284,12 +6897,23 @@ statics: {
 
 	getArea: function(v) {
 		var p1x = v[0], p1y = v[1],
+<<<<<<< HEAD
 			c1x = v[2], c1y = v[3],
 			c2x = v[4], c2y = v[5],
 			p2x = v[6], p2y = v[7];
 		return 3 * ((p2y - p1y) * (c1x + c2x) - (p2x - p1x) * (c1y + c2y)
 				+ c1y * (p1x - c2x) - c1x * (p1y - c2y)
 				+ p2y * (c2x + p1x / 3) - p2x * (c2y + p1y / 3)) / 20;
+=======
+			p2x = v[6], p2y = v[7],
+			h1x = (v[2] + p1x) / 2,
+			h1y = (v[3] + p1y) / 2,
+			h2x = (v[4] + v[6]) / 2,
+			h2y = (v[5] + v[7]) / 2;
+		return 6 * ((p1x - h1x) * (h1y + p1y)
+				  + (h1x - h2x) * (h2y + h1y)
+				  + (h2x - p2x) * (p2y + h2y)) / 10;
+>>>>>>> skali
 	},
 
 	getBounds: function(v) {
@@ -6311,6 +6935,7 @@ statics: {
 			if (right > max[coord])
 				max[coord] = right;
 		}
+<<<<<<< HEAD
 
 		padding /= 2;
 		var minPad = min[coord] - padding,
@@ -6343,14 +6968,43 @@ statics: {
 	}
 }}, Base.each(
 	['getBounds', 'getStrokeBounds', 'getHandleBounds'],
+=======
+		var a = 3 * (v1 - v2) - v0 + v3,
+			b = 2 * (v0 + v2) - 4 * v1,
+			c = v1 - v0,
+			count = Numerical.solveQuadratic(a, b, c, roots),
+			tMin = 4e-7,
+			tMax = 1 - tMin;
+		add(v3, 0);
+		for (var i = 0; i < count; i++) {
+			var t = roots[i],
+				u = 1 - t;
+			if (tMin < t && t < tMax)
+				add(u * u * u * v0
+					+ 3 * u * u * t * v1
+					+ 3 * u * t * t * v2
+					+ t * t * t * v3,
+					padding);
+		}
+	}
+}}, Base.each(
+	['getBounds', 'getStrokeBounds', 'getHandleBounds', 'getRoughBounds'],
+>>>>>>> skali
 	function(name) {
 		this[name] = function() {
 			if (!this._bounds)
 				this._bounds = {};
 			var bounds = this._bounds[name];
 			if (!bounds) {
+<<<<<<< HEAD
 				bounds = this._bounds[name] = Path[name](
 						[this._segment1, this._segment2], false, this._path);
+=======
+				var path = this._path;
+				bounds = this._bounds[name] = Path[name](
+						[this._segment1, this._segment2], false,
+						path && path.getStyle());
+>>>>>>> skali
 			}
 			return bounds.clone();
 		};
@@ -6361,6 +7015,7 @@ statics: {
 	isStraight: function(l, h1, h2) {
 		if (h1.isZero() && h2.isZero()) {
 			return true;
+<<<<<<< HEAD
 		} else {
 			var v = l.getVector(),
 				epsilon = 2e-7;
@@ -6373,26 +7028,47 @@ statics: {
 					p2 = v.dot(h2) / div;
 				return p1 >= 0 && p1 <= 1 && p2 <= 0 && p2 >= -1;
 			}
+=======
+		} else if (l.isZero()) {
+			return false;
+		} else if (h1.isCollinear(l) && h2.isCollinear(l)) {
+			var div = l.dot(l),
+				p1 = l.dot(h1) / div,
+				p2 = l.dot(h2) / div;
+			return p1 >= 0 && p1 <= 1 && p2 <= 0 && p2 >= -1;
+>>>>>>> skali
 		}
 		return false;
 	},
 
 	isLinear: function(l, h1, h2) {
+<<<<<<< HEAD
 		var third = l.getVector().divide(3);
+=======
+		var third = l.divide(3);
+>>>>>>> skali
 		return h1.equals(third) && h2.negate().equals(third);
 	}
 }, function(test, name) {
 	this[name] = function() {
 		var seg1 = this._segment1,
 			seg2 = this._segment2;
+<<<<<<< HEAD
 		return test(new Line(seg1._point, seg2._point),
+=======
+		return test(seg2._point.subtract(seg1._point),
+>>>>>>> skali
 				seg1._handleOut, seg2._handleIn);
 	};
 
 	this.statics[name] = function(v) {
 		var p1x = v[0], p1y = v[1],
 			p2x = v[6], p2y = v[7];
+<<<<<<< HEAD
 		return test(new Line(p1x, p1y, p2x, p2y),
+=======
+		return test(new Point(p2x - p1x, p2y - p1y),
+>>>>>>> skali
 				new Point(v[2] - p1x, v[3] - p1y),
 				new Point(v[4] - p2x, v[5] - p2y));
 	};
@@ -6410,12 +7086,20 @@ statics: {
 	},
 
 	isHorizontal: function() {
+<<<<<<< HEAD
 		return this.isStraight() && Math.abs(this.getTangentAtTime(0.5).y)
+=======
+		return this.isStraight() && Math.abs(this.getTangentAt(0.5, true).y)
+>>>>>>> skali
 				< 1e-7;
 	},
 
 	isVertical: function() {
+<<<<<<< HEAD
 		return this.isStraight() && Math.abs(this.getTangentAtTime(0.5).x)
+=======
+		return this.isStraight() && Math.abs(this.getTangentAt(0.5, true).x)
+>>>>>>> skali
 				< 1e-7;
 	}
 }), {
@@ -6426,6 +7110,7 @@ statics: {
 				_isTime ? offset : this.getTimeAt(offset));
 	},
 
+<<<<<<< HEAD
 	getLocationAtTime: function(t) {
 		return t != null && t >= 0 && t <= 1
 				? new CurveLocation(this, t)
@@ -6440,6 +7125,17 @@ statics: {
 
 	getOffsetAtTime: function(t) {
 		return this.getPartLength(0, t);
+=======
+	getParameterOf: function() {
+		return Curve.getParameterOf(this.getValues(), Point.read(arguments));
+	},
+
+	getLocationAt: function(offset, isParameter) {
+		var t = isParameter ? offset : this.getParameterAt(offset);
+		return t != null && t >= 0 && t <= 1
+				? new CurveLocation(this, t)
+				: null;
+>>>>>>> skali
 	},
 
 	getLocationOf: function() {
@@ -6460,7 +7156,11 @@ statics: {
 	getNearestLocation: function() {
 		var point = Point.read(arguments),
 			values = this.getValues(),
+<<<<<<< HEAD
 			t = Curve.getNearestTime(values, point),
+=======
+			t = Curve.getNearestParameter(values, point),
+>>>>>>> skali
 			pt = Curve.getPoint(values, t);
 		return new CurveLocation(this, t, pt, null, point.getDistance(pt));
 	},
@@ -6475,6 +7175,7 @@ new function() {
 	var methods = ['getPoint', 'getTangent', 'getNormal', 'getWeightedTangent',
 		'getWeightedNormal', 'getCurvature'];
 	return Base.each(methods,
+<<<<<<< HEAD
 		function(name) {
 			this[name + 'At'] = function(location, _isTime) {
 				var values = this.getValues();
@@ -6491,6 +7192,19 @@ new function() {
 			}
 		}
 	);
+=======
+	function(name) {
+		this[name + 'At'] = function(offset, isParameter) {
+			var values = this.getValues();
+			return Curve[name](values, isParameter ? offset
+					: Curve.getParameterAt(values, offset, 0));
+		};
+	}, {
+		statics: {
+			evaluateMethods: methods
+		}
+	})
+>>>>>>> skali
 },
 new function() {
 
@@ -6526,6 +7240,7 @@ new function() {
 			c1x = v[2], c1y = v[3],
 			c2x = v[4], c2y = v[5],
 			p2x = v[6], p2y = v[7],
+<<<<<<< HEAD
 			isZero = Numerical.isZero;
 		if (isZero(c1x - p1x) && isZero(c1y - p1y)) {
 			c1x = p1x;
@@ -6577,6 +7292,56 @@ new function() {
 					d = Math.pow(x * x + y * y, 3 / 2);
 				x = d !== 0 ? (x * y2 - y * x2) / d : 0;
 				y = 0;
+=======
+			tMin = 4e-7,
+			tMax = 1 - tMin,
+			x, y;
+
+		if (type === 0 && (t < tMin || t > tMax)) {
+			var isZero = t < tMin;
+			x = isZero ? p1x : p2x;
+			y = isZero ? p1y : p2y;
+		} else {
+			var cx = 3 * (c1x - p1x),
+				bx = 3 * (c2x - c1x) - cx,
+				ax = p2x - p1x - cx - bx,
+
+				cy = 3 * (c1y - p1y),
+				by = 3 * (c2y - c1y) - cy,
+				ay = p2y - p1y - cy - by;
+			if (type === 0) {
+				x = ((ax * t + bx) * t + cx) * t + p1x;
+				y = ((ay * t + by) * t + cy) * t + p1y;
+			} else {
+				if (t < tMin) {
+					x = cx;
+					y = cy;
+				} else if (t > tMax) {
+					x = 3 * (p2x - c2x);
+					y = 3 * (p2y - c2y);
+				} else {
+					x = (3 * ax * t + 2 * bx) * t + cx;
+					y = (3 * ay * t + 2 * by) * t + cy;
+				}
+				if (normalized) {
+					if (x === 0 && y === 0 && (t < tMin || t > tMax)) {
+						x = c2x - c1x;
+						y = c2y - c1y;
+					}
+					var len = Math.sqrt(x * x + y * y);
+					if (len) {
+						x /= len;
+						y /= len;
+					}
+				}
+				if (type === 3) {
+					var x2 = 6 * ax * t + 2 * bx,
+						y2 = 6 * ay * t + 2 * by,
+						d = Math.pow(x * x + y * y, 3 / 2);
+					x = d !== 0 ? (x * y2 - y * x2) / d : 0;
+					y = 0;
+				}
+>>>>>>> skali
 			}
 		}
 		return type === 2 ? new Point(y, -x) : new Point(x, y);
@@ -6589,6 +7354,7 @@ new function() {
 				a = 0;
 			if (b === undefined)
 				b = 1;
+<<<<<<< HEAD
 			if (Curve.isStraight(v)) {
 				var c = v;
 				if (b < 1) {
@@ -6600,6 +7366,11 @@ new function() {
 				}
 				var dx = c[6] - c[0],
 					dy = c[7] - c[1];
+=======
+			if (a === 0 && b === 1 && Curve.isStraight(v)) {
+				var dx = v[6] - v[0],
+					dy = v[7] - v[1];
+>>>>>>> skali
 				return Math.sqrt(dx * dx + dy * dy);
 			}
 			return Numerical.integrate(ds || getLengthIntegrand(v), a, b,
@@ -6612,16 +7383,27 @@ new function() {
 			if (offset === 0)
 				return start;
 			var abs = Math.abs,
+<<<<<<< HEAD
 				epsilon = 1e-12,
+=======
+>>>>>>> skali
 				forward = offset > 0,
 				a = forward ? start : 0,
 				b = forward ? 1 : start,
 				ds = getLengthIntegrand(v),
+<<<<<<< HEAD
 				rangeLength = Curve.getLength(v, a, b, ds),
 				diff = abs(offset) - rangeLength;
 			if (abs(diff) < epsilon) {
 				return forward ? b : a;
 			} else if (diff > epsilon) {
+=======
+				rangeLength = Numerical.integrate(ds, a, b,
+						getIterations(a, b));
+			if (abs(offset - rangeLength) < 1e-12) {
+				return forward ? b : a;
+			} else if (abs(offset) > rangeLength) {
+>>>>>>> skali
 				return null;
 			}
 			var guess = offset / rangeLength,
@@ -6665,6 +7447,7 @@ new function() {
 
 	function addLocation(locations, param, v1, c1, t1, p1, v2, c2, t2, p2,
 			overlap) {
+<<<<<<< HEAD
 		var excludeStart = !overlap && param.excludeStart,
 			excludeEnd = !overlap && param.excludeEnd,
 			tMin = 4e-7,
@@ -6677,6 +7460,20 @@ new function() {
 				t2 = Curve.getTimeOf(v2, p2);
 			if (t2 !== null && t2 >= (excludeEnd ? tMin : 0) &&
 				t2 <= (excludeStart ? tMax : 1)) {
+=======
+		var startConnected = param.startConnected,
+			endConnected = param.endConnected,
+			tMin = 4e-7,
+			tMax = 1 - tMin;
+		if (t1 == null)
+			t1 = Curve.getParameterOf(v1, p1);
+		if (t1 !== null && t1 >= (startConnected ? tMin : 0) &&
+			t1 <= (endConnected ? tMax : 1)) {
+			if (t2 == null)
+				t2 = Curve.getParameterOf(v2, p2);
+			if (t2 !== null && t2 >= (endConnected ? tMin : 0) &&
+				t2 <= (startConnected ? tMax : 1)) {
+>>>>>>> skali
 				var renormalize = param.renormalize;
 				if (renormalize) {
 					var res = renormalize(t1, t2);
@@ -6700,10 +7497,17 @@ new function() {
 		}
 	}
 
+<<<<<<< HEAD
 	function addCurveIntersections(v1, v2, c1, c2, locations, param, tMin, tMax,
 			uMin, uMax, flip, recursion, calls) {
 		if (++recursion >= 48 || ++calls > 4096)
 			return calls;
+=======
+	function addCurveIntersections(v1, v2, c1, c2, locations, param,
+			tMin, tMax, uMin, uMax, oldTDiff, reverse, recursion) {
+		if (++recursion >= 24)
+			return;
+>>>>>>> skali
 		var q0x = v2[0], q0y = v2[1], q3x = v2[6], q3y = v2[7],
 			getSignedDistance = Line.getSignedDistance,
 			d1 = getSignedDistance(q0x, q0y, q3x, q3y, v2[2], v2[3]),
@@ -6720,6 +7524,7 @@ new function() {
 			bottom = hull[1],
 			tMinClip,
 			tMaxClip;
+<<<<<<< HEAD
 		if (d1 === 0 && d2 === 0
 				&& dp0 === 0 && dp1 === 0 && dp2 === 0 && dp3 === 0
 			|| (tMinClip = clipConvexHull(top, bottom, dMin, dMax)) == null
@@ -6764,6 +7569,48 @@ new function() {
 						v2, v1, c2, c1, locations, param,
 						uMin, uMax, tMinNew, tMaxNew, !flip, recursion, calls);
 			}
+=======
+		if ((tMinClip = clipConvexHull(top, bottom, dMin, dMax)) == null ||
+			(tMaxClip = clipConvexHull(top.reverse(), bottom.reverse(),
+				dMin, dMax)) == null)
+			return;
+		v1 = Curve.getPart(v1, tMinClip, tMaxClip);
+		var tDiff = tMaxClip - tMinClip,
+			tMinNew = tMin + (tMax - tMin) * tMinClip,
+			tMaxNew = tMin + (tMax - tMin) * tMaxClip;
+		if (oldTDiff > 0.5 && tDiff > 0.5) {
+			if (tMaxNew - tMinNew > uMax - uMin) {
+				var parts = Curve.subdivide(v1, 0.5),
+					t = tMinNew + (tMaxNew - tMinNew) / 2;
+				addCurveIntersections(
+					v2, parts[0], c2, c1, locations, param,
+					uMin, uMax, tMinNew, t, tDiff, !reverse, recursion);
+				addCurveIntersections(
+					v2, parts[1], c2, c1, locations, param,
+					uMin, uMax, t, tMaxNew, tDiff, !reverse, recursion);
+			} else {
+				var parts = Curve.subdivide(v2, 0.5),
+					t = uMin + (uMax - uMin) / 2;
+				addCurveIntersections(
+					parts[0], v1, c2, c1, locations, param,
+					uMin, t, tMinNew, tMaxNew, tDiff, !reverse, recursion);
+				addCurveIntersections(
+					parts[1], v1, c2, c1, locations, param,
+					t, uMax, tMinNew, tMaxNew, tDiff, !reverse, recursion);
+			}
+		} else if (Math.max(uMax - uMin, tMaxNew - tMinNew)
+				< 1e-7) {
+			var t1 = tMinNew + (tMaxNew - tMinNew) / 2,
+				t2 = uMin + (uMax - uMin) / 2;
+			v1 = c1.getValues();
+			v2 = c2.getValues();
+			addLocation(locations, param,
+				reverse ? v2 : v1, reverse ? c2 : c1, reverse ? t2 : t1, null,
+				reverse ? v1 : v2, reverse ? c1 : c2, reverse ? t1 : t2, null);
+		} else if (tDiff > 1e-12) {
+			addCurveIntersections(v2, v1, c2, c1, locations, param,
+					uMin, uMax, tMinNew, tMaxNew, tDiff, !reverse, recursion);
+>>>>>>> skali
 		}
 		return calls;
 	}
@@ -6782,7 +7629,11 @@ new function() {
 			var distRatio = dist1 / dist2;
 			hull = [
 				distRatio >= 2 ? [p0, p1, p3]
+<<<<<<< HEAD
 				: distRatio <= 0.5 ? [p0, p2, p3]
+=======
+				: distRatio <= .5 ? [p0, p2, p3]
+>>>>>>> skali
 				: [p0, p1, p2, p3],
 				[p0, p3]
 			];
@@ -6840,12 +7691,20 @@ new function() {
 		for (var i = 0; i < count; i++) {
 			var tc = roots[i],
 				pc = Curve.getPoint(vc, tc),
+<<<<<<< HEAD
 				tl = Curve.getTimeOf(vl, pc);
+=======
+				tl = Curve.getParameterOf(vl, pc);
+>>>>>>> skali
 			if (tl !== null) {
 				var pl = Curve.getPoint(vl, tl),
 					t1 = flip ? tl : tc,
 					t2 = flip ? tc : tl;
+<<<<<<< HEAD
 				if (!param.excludeEnd || t2 > Numerical.CURVETIME_EPSILON) {
+=======
+				if (!param.endConnected || t2 > Numerical.CURVETIME_EPSILON) {
+>>>>>>> skali
 					addLocation(locations, param,
 							v1, c1, t1, flip ? pl : pc,
 							v2, c2, t2, flip ? pc : pl);
@@ -6868,8 +7727,12 @@ new function() {
 			if (!v2) {
 				return Curve._getSelfIntersection(v1, c1, locations, param);
 			}
+<<<<<<< HEAD
 			var epsilon = 2e-7,
 				c1p1x = v1[0], c1p1y = v1[1],
+=======
+			var c1p1x = v1[0], c1p1y = v1[1],
+>>>>>>> skali
 				c1p2x = v1[6], c1p2y = v1[7],
 				c2p1x = v2[0], c2p1y = v2[1],
 				c2p2x = v2[6], c2p2y = v2[7],
@@ -6883,6 +7746,7 @@ new function() {
 				c2s2y = (3 * v2[5] + c2p2y) / 4,
 				min = Math.min,
 				max = Math.max;
+<<<<<<< HEAD
 			if (!(  max(c1p1x, c1s1x, c1s2x, c1p2x) + epsilon >
 					min(c2p1x, c2s1x, c2s2x, c2p2x) &&
 					min(c1p1x, c1s1x, c1s2x, c1p2x) - epsilon <
@@ -6901,11 +7765,37 @@ new function() {
 						v2, c2, overlap[1], null, true);
 				}
 				return locations;
+=======
+			if (!(	max(c1p1x, c1s1x, c1s2x, c1p2x) >=
+					min(c2p1x, c2s1x, c2s2x, c2p2x) &&
+					min(c1p1x, c1s1x, c1s2x, c1p2x) <=
+					max(c2p1x, c2s1x, c2s2x, c2p2x) &&
+					max(c1p1y, c1s1y, c1s2y, c1p2y) >=
+					min(c2p1y, c2s1y, c2s2y, c2p2y) &&
+					min(c1p1y, c1s1y, c1s2y, c1p2y) <=
+					max(c2p1y, c2s1y, c2s2y, c2p2y)))
+				return locations;
+			if (!param.startConnected && !param.endConnected) {
+				var overlaps = Curve.getOverlaps(v1, v2);
+				if (overlaps) {
+					for (var i = 0; i < 2; i++) {
+						var overlap = overlaps[i];
+						addLocation(locations, param,
+							v1, c1, overlap[0], null,
+							v2, c2, overlap[1], null, true);
+					}
+					return locations;
+				}
+>>>>>>> skali
 			}
 
 			var straight1 = Curve.isStraight(v1),
 				straight2 = Curve.isStraight(v2),
 				straight = straight1 && straight2,
+<<<<<<< HEAD
+=======
+				epsilon = 1e-12,
+>>>>>>> skali
 				before = locations.length;
 			(straight
 				? addLineIntersection
@@ -6913,7 +7803,11 @@ new function() {
 					? addCurveLineIntersections
 					: addCurveIntersections)(
 						v1, v2, c1, c2, locations, param,
+<<<<<<< HEAD
 						0, 1, 0, 1, 0, 0, 0);
+=======
+						0, 1, 0, 1, 0, false, 0);
+>>>>>>> skali
 			if (straight && locations.length > before)
 				return locations;
 			var c1p1 = new Point(c1p1x, c1p1y),
@@ -6922,9 +7816,15 @@ new function() {
 				c2p2 = new Point(c2p2x, c2p2y);
 			if (c1p1.isClose(c2p1, epsilon))
 				addLocation(locations, param, v1, c1, 0, c1p1, v2, c2, 0, c2p1);
+<<<<<<< HEAD
 			if (!param.excludeStart && c1p1.isClose(c2p2, epsilon))
 				addLocation(locations, param, v1, c1, 0, c1p1, v2, c2, 1, c2p2);
 			if (!param.excludeEnd && c1p2.isClose(c2p1, epsilon))
+=======
+			if (!param.startConnected && c1p1.isClose(c2p2, epsilon))
+				addLocation(locations, param, v1, c1, 0, c1p1, v2, c2, 1, c2p2);
+			if (!param.endConnected && c1p2.isClose(c2p1, epsilon))
+>>>>>>> skali
 				addLocation(locations, param, v1, c1, 1, c1p2, v2, c2, 0, c2p1);
 			if (c1p2.isClose(c2p2, epsilon))
 				addLocation(locations, param, v1, c1, 1, c1p2, v2, c2, 1, c2p2);
@@ -6958,7 +7858,11 @@ new function() {
 				var roots = [],
 					tSplit,
 					count = Numerical.solveCubic(
+<<<<<<< HEAD
 							ax * ax  + ay * ay,
+=======
+							ax * ax	 + ay * ay,
+>>>>>>> skali
 							3 * (ax * bx + ay * by),
 							2 * (bx * bx + by * by) + ax * cx + ay * cy,
 							bx * cx + by * cy,
@@ -6966,14 +7870,22 @@ new function() {
 				if (count > 0) {
 					for (var i = 0, maxCurvature = 0; i < count; i++) {
 						var curvature = Math.abs(
+<<<<<<< HEAD
 								c1.getCurvatureAtTime(roots[i]));
+=======
+								c1.getCurvatureAt(roots[i], true));
+>>>>>>> skali
 						if (curvature > maxCurvature) {
 							maxCurvature = curvature;
 							tSplit = roots[i];
 						}
 					}
 					var parts = Curve.subdivide(v1, tSplit);
+<<<<<<< HEAD
 					param.excludeEnd = true;
+=======
+					param.endConnected = true;
+>>>>>>> skali
 					param.renormalize = function(t1, t2) {
 						return [t1 * tSplit, t2 * (1 - tSplit) + tSplit];
 					};
@@ -6990,14 +7902,21 @@ new function() {
 				geomEpsilon = 2e-7,
 				straight1 = Curve.isStraight(v1),
 				straight2 = Curve.isStraight(v2),
+<<<<<<< HEAD
 				straightBoth = straight1 && straight2;
 
 			function getSquaredLineLength(v) {
+=======
+				straight =	straight1 && straight2;
+
+			function getLineLengthSquared(v) {
+>>>>>>> skali
 				var x = v[6] - v[0],
 					y = v[7] - v[1];
 				return x * x + y * y;
 			}
 
+<<<<<<< HEAD
 			var flip = getSquaredLineLength(v1) < getSquaredLineLength(v2),
 				l1 = flip ? v2 : v1,
 				l2 = flip ? v1 : v2,
@@ -7015,6 +7934,17 @@ new function() {
 				return null;
 			}
 			if (straight1 ^ straight2) {
+=======
+			if (straight) {
+				var flip = getLineLengthSquared(v1) < getLineLengthSquared(v2),
+					l1 = flip ? v2 : v1,
+					l2 = flip ? v1 : v2,
+					line = new Line(l1[0], l1[1], l1[6], l1[7]);
+				if (line.getDistance(new Point(l2[0], l2[1])) > geomEpsilon ||
+					line.getDistance(new Point(l2[6], l2[7])) > geomEpsilon)
+					return null;
+			} else if (straight1 ^ straight2) {
+>>>>>>> skali
 				return null;
 			}
 
@@ -7023,7 +7953,11 @@ new function() {
 			for (var i = 0, t1 = 0;
 					i < 2 && pairs.length < 2;
 					i += t1 === 0 ? 0 : 1, t1 = t1 ^ 1) {
+<<<<<<< HEAD
 				var t2 = Curve.getTimeOf(v[i ^ 1], new Point(
+=======
+				var t2 = Curve.getParameterOf(v[i ^ 1], new Point(
+>>>>>>> skali
 						v[i][t1 === 0 ? 0 : 6],
 						v[i][t1 === 0 ? 1 : 7]));
 				if (t2 != null) {
@@ -7038,7 +7972,11 @@ new function() {
 			}
 			if (pairs.length !== 2) {
 				pairs = null;
+<<<<<<< HEAD
 			} else if (!straightBoth) {
+=======
+			} else if (!straight) {
+>>>>>>> skali
 				var o1 = Curve.getPart(v1, pairs[0][0], pairs[1][0]),
 					o2 = Curve.getPart(v2, pairs[0][1], pairs[1][1]);
 				if (abs(o2[2] - o1[2]) > geomEpsilon ||
@@ -7056,6 +7994,7 @@ var CurveLocation = Base.extend({
 	_class: 'CurveLocation',
 	beans: true,
 
+<<<<<<< HEAD
 	initialize: function CurveLocation(curve, time, point, _overlap, _distance) {
 		if (time > 0.9999996) {
 			var next = curve.getNext();
@@ -7070,11 +8009,32 @@ var CurveLocation = Base.extend({
 		this._overlap = _overlap;
 		this._distance = _distance;
 		this._intersection = this._next = this._previous = null;
+=======
+	initialize: function CurveLocation(curve, parameter, point,
+			_overlap, _distance) {
+		if (parameter > 0.9999996) {
+			var next = curve.getNext();
+			if (next) {
+				parameter = 0;
+				curve = next;
+			}
+		}
+		this._id = UID.get(CurveLocation);
+		this._setCurve(curve);
+		this._parameter = parameter;
+		this._point = point || curve.getPointAt(parameter, true);
+		this._overlap = _overlap;
+		this._distance = _distance;
+		this._intersection = this._next = this._prev = null;
+>>>>>>> skali
 	},
 
 	_setCurve: function(curve) {
 		var path = curve._path;
+<<<<<<< HEAD
 		this._path = path;
+=======
+>>>>>>> skali
 		this._version = path ? path._version : 0;
 		this._curve = curve;
 		this._segment = null;
@@ -7085,7 +8045,11 @@ var CurveLocation = Base.extend({
 	_setSegment: function(segment) {
 		this._setCurve(segment.getCurve());
 		this._segment = segment;
+<<<<<<< HEAD
 		this._time = segment === this._segment1 ? 0 : 1;
+=======
+		this._parameter = segment === this._segment1 ? 0 : 1;
+>>>>>>> skali
 		this._point = segment._point.clone();
 	},
 
@@ -7093,6 +8057,7 @@ var CurveLocation = Base.extend({
 		var curve = this.getCurve(),
 			segment = this._segment;
 		if (!segment) {
+<<<<<<< HEAD
 			var time = this.getTime();
 			if (time === 0) {
 				segment = curve._segment1;
@@ -7101,6 +8066,16 @@ var CurveLocation = Base.extend({
 			} else if (time != null) {
 				segment = curve.getPartLength(0, time)
 					< curve.getPartLength(time, 1)
+=======
+			var parameter = this.getParameter();
+			if (parameter === 0) {
+				segment = curve._segment1;
+			} else if (parameter === 1) {
+				segment = curve._segment2;
+			} else if (parameter != null) {
+				segment = curve.getPartLength(0, parameter)
+					< curve.getPartLength(parameter, 1)
+>>>>>>> skali
 						? curve._segment1
 						: curve._segment2;
 			}
@@ -7110,15 +8085,27 @@ var CurveLocation = Base.extend({
 	},
 
 	getCurve: function() {
+<<<<<<< HEAD
 		var path = this._path,
 			that = this;
 		if (path && path._version !== this._version) {
 			this._time = this._curve = this._offset = null;
+=======
+		var curve = this._curve,
+			path = curve && curve._path,
+			that = this;
+		if (path && path._version !== this._version) {
+			curve = this._parameter = this._curve = this._offset = null;
+>>>>>>> skali
 		}
 
 		function trySegment(segment) {
 			var curve = segment && segment.getCurve();
+<<<<<<< HEAD
 			if (curve && (that._time = curve.getTimeOf(that._point))
+=======
+			if (curve && (that._parameter = curve.getParameterOf(that._point))
+>>>>>>> skali
 					!= null) {
 				that._setCurve(curve);
 				that._segment = segment;
@@ -7126,7 +8113,11 @@ var CurveLocation = Base.extend({
 			}
 		}
 
+<<<<<<< HEAD
 		return this._curve
+=======
+		return curve
+>>>>>>> skali
 			|| trySegment(this._segment)
 			|| trySegment(this._segment1)
 			|| trySegment(this._segment2.getPrevious());
@@ -7142,12 +8133,41 @@ var CurveLocation = Base.extend({
 		return curve && curve.getIndex();
 	},
 
+<<<<<<< HEAD
 	getTime: function() {
 		var curve = this.getCurve(),
 			time = this._time;
 		return curve && time == null
 			? this._time = curve.getTimeOf(this._point)
 			: time;
+=======
+	getParameter: function() {
+		var curve = this.getCurve(),
+			parameter = this._parameter;
+		return curve && parameter == null
+			? this._parameter = curve.getParameterOf(this._point)
+			: parameter;
+	},
+
+	getPoint: function() {
+		return this._point;
+	},
+
+	getOffset: function() {
+		var offset = this._offset;
+		if (offset == null) {
+			offset = 0;
+			var path = this.getPath(),
+				index = this.getIndex();
+			if (path && index != null) {
+				var curves = path.getCurves();
+				for (var i = 0; i < index; i++)
+					offset += curves[i].getLength();
+			}
+			this._offset = offset += this.getCurveOffset();
+		}
+		return offset;
+>>>>>>> skali
 	},
 
 	getParameter: '#getTime',
@@ -7156,6 +8176,7 @@ var CurveLocation = Base.extend({
 		return this._point;
 	},
 
+<<<<<<< HEAD
 	getOffset: function() {
 		var offset = this._offset;
 		if (offset == null) {
@@ -7178,6 +8199,8 @@ var CurveLocation = Base.extend({
 		return time != null && curve && curve.getPartLength(0, time);
 	},
 
+=======
+>>>>>>> skali
 	getIntersection: function() {
 		return this._intersection;
 	},
@@ -7190,7 +8213,11 @@ var CurveLocation = Base.extend({
 		var curve = this.getCurve(),
 			res = null;
 		if (curve) {
+<<<<<<< HEAD
 			res = curve.divideAtTime(this.getTime());
+=======
+			res = curve.divide(this.getParameter(), true);
+>>>>>>> skali
 			if (res)
 				this._setSegment(res._segment1);
 		}
@@ -7199,7 +8226,11 @@ var CurveLocation = Base.extend({
 
 	split: function() {
 		var curve = this.getCurve();
+<<<<<<< HEAD
 		return curve ? curve.splitAtTime(this.getTime()) : null;
+=======
+		return curve ? curve.split(this.getParameter(), true) : null;
+>>>>>>> skali
 	},
 
 	equals: function(loc, _ignoreOther) {
@@ -7213,9 +8244,15 @@ var CurveLocation = Base.extend({
 				abs = Math.abs,
 				diff = abs(
 					((c1.isLast() && c2.isFirst() ? -1 : c1.getIndex())
+<<<<<<< HEAD
 							+ this.getTime()) -
 					((c2.isLast() && c1.isFirst() ? -1 : c2.getIndex())
 							+ loc.getTime()));
+=======
+							+ this.getParameter()) -
+					((c2.isLast() && c1.isFirst() ? -1 : c2.getIndex())
+							+ loc.getParameter()));
+>>>>>>> skali
 			res = (diff < 4e-7
 				|| ((diff = abs(this.getOffset() - loc.getOffset())) < epsilon
 					|| abs(this.getPath().getLength() - diff) < epsilon))
@@ -7259,6 +8296,7 @@ var CurveLocation = Base.extend({
 		var inter = this._intersection;
 		if (!inter)
 			return false;
+<<<<<<< HEAD
 		var t1 = this.getTime(),
 			t2 = inter.getTime(),
 			tMin = 4e-7,
@@ -7276,10 +8314,25 @@ var CurveLocation = Base.extend({
 		if (t2 >= tMax)
 			c4 = c4.getNext();
 		if (!c1 || !c2 || !c3 || !c4)
+=======
+		var t1 = this.getParameter(),
+			t2 = inter.getParameter(),
+			tMin = 4e-7,
+			tMax = 1 - tMin;
+		if (t1 >= tMin && t1 <= tMax || t2 >= tMin && t2 <= tMax)
+			return !this.isTouching();
+		var c2 = this.getCurve(),
+			c1 = c2.getPrevious(),
+			c4 = inter.getCurve(),
+			c3 = c4.getPrevious(),
+			PI = Math.PI;
+		if (!c1 || !c3)
+>>>>>>> skali
 			return false;
 
 		function isInRange(angle, min, max) {
 			return min < max
+<<<<<<< HEAD
 					? angle > min && angle < max
 					: angle > min || angle < max;
 		}
@@ -7314,6 +8367,25 @@ var CurveLocation = Base.extend({
 		return !!this._overlap;
 	}
 }, Base.each(Curve._evaluateMethods, function(name) {
+=======
+				? angle > min && angle < max
+				: angle > min && angle <= PI || angle >= -PI && angle < max;
+		}
+
+		var a1 = c1.getTangentAt(tMax, true).negate().getAngleInRadians(),
+			a2 = c2.getTangentAt(tMin, true).getAngleInRadians(),
+			a3 = c3.getTangentAt(tMax, true).negate().getAngleInRadians(),
+			a4 = c4.getTangentAt(tMin, true).getAngleInRadians();
+
+		return (isInRange(a3, a1, a2) ^ isInRange(a4, a1, a2))
+			&& (isInRange(a3, a2, a1) ^ isInRange(a4, a2, a1));
+	},
+
+	isOverlap: function() {
+		return !!this._overlap;
+	}
+}, Base.each(Curve.evaluateMethods, function(name) {
+>>>>>>> skali
 	var get = name + 'At';
 	this[name] = function() {
 		var curve = this.getCurve(),
@@ -7356,8 +8428,13 @@ new function() {
 		var path1 = loc.getPath(),
 			path2 = loc2.getPath(),
 			diff = path1 === path2
+<<<<<<< HEAD
 				? (loc.getIndex() + loc.getTime())
 				- (loc2.getIndex() + loc2.getTime())
+=======
+				? (loc.getIndex() + loc.getParameter())
+				- (loc2.getIndex() + loc2.getParameter())
+>>>>>>> skali
 				: path1._id - path2._id;
 			if (diff < 0) {
 				r = m - 1;
@@ -7374,7 +8451,11 @@ new function() {
 
 		expand: function(locations) {
 			var expanded = locations.slice();
+<<<<<<< HEAD
 			for (var i = locations.length - 1; i >= 0; i--) {
+=======
+			for (var i = 0, l = locations.length; i < l; i++) {
+>>>>>>> skali
 				insert(expanded, locations[i]._intersection, false);
 			}
 			return expanded;
@@ -7390,12 +8471,73 @@ var PathItem = Item.extend({
 	initialize: function PathItem() {
 	},
 
+<<<<<<< HEAD
 	statics: {
 		create: function(pathData) {
 			var ctor = (pathData && pathData.match(/m/gi) || []).length > 1
 					|| /z\s*\S+/i.test(pathData) ? CompoundPath : Path;
 			return new ctor(pathData);
 		}
+=======
+	getIntersections: function(path, include, _matrix, _returnFirst) {
+		var self = this === path || !path,
+			matrix1 = this._matrix.orNullIfIdentity(),
+			matrix2 = self ? matrix1
+				: (_matrix || path._matrix).orNullIfIdentity();
+		if (!self && !this.getBounds(matrix1).touches(path.getBounds(matrix2)))
+			return [];
+		var curves1 = this.getCurves(),
+			curves2 = self ? curves1 : path.getCurves(),
+			length1 = curves1.length,
+			length2 = self ? length1 : curves2.length,
+			values2 = [],
+			arrays = [],
+			locations,
+			path;
+		for (var i = 0; i < length2; i++)
+			values2[i] = curves2[i].getValues(matrix2);
+		for (var i = 0; i < length1; i++) {
+			var curve1 = curves1[i],
+				values1 = self ? values2[i] : curve1.getValues(matrix1),
+				path1 = curve1.getPath();
+			if (path1 !== path) {
+				path = path1;
+				locations = [];
+				arrays.push(locations);
+			}
+			if (self) {
+				Curve._getSelfIntersection(values1, curve1, locations, {
+					include: include,
+					startConnected: length1 === 1 &&
+							curve1.getPoint1().equals(curve1.getPoint2())
+				});
+			}
+			for (var j = self ? i + 1 : 0; j < length2; j++) {
+				if (_returnFirst && locations.length)
+					return locations;
+				var curve2 = curves2[j];
+				Curve._getIntersections(
+					values1, values2[j], curve1, curve2, locations,
+					{
+						include: include,
+						startConnected: self && curve1.getPrevious() === curve2,
+						endConnected: self && curve1.getNext() === curve2
+					}
+				);
+			}
+		}
+		locations = [];
+		for (var i = 0, l = arrays.length; i < l; i++) {
+			locations.push.apply(locations, arrays[i]);
+		}
+		return locations;
+	},
+
+	getCrossings: function(path) {
+		return this.getIntersections(path, function(inter) {
+			return inter.isCrossing();
+		});
+>>>>>>> skali
 	},
 
 	_asPathItem: function() {
@@ -7678,6 +8820,12 @@ var Path = PathItem.extend({
 	_changed: function _changed(flags) {
 		_changed.base.call(this, flags);
 		if (flags & 8) {
+<<<<<<< HEAD
+=======
+			var parent = this._parent;
+			if (parent)
+				parent._currentPath = undefined;
+>>>>>>> skali
 			this._length = this._area = this._clockwise = this._monoCurves =
 					undefined;
 			if (flags & 16) {
@@ -7846,10 +8994,16 @@ var Path = PathItem.extend({
 		}
 		if (curves) {
 			var total = this._countCurves(),
+<<<<<<< HEAD
 				start = index > 0 && index + amount - 1 === total ? index - 1
 					: index,
 				insert = start,
 				end = Math.min(start + amount, total);
+=======
+				from = index + amount - 1 === total ? index - 1 : index,
+				start = from,
+				to = Math.min(from + amount, total);
+>>>>>>> skali
 			if (segs._curves) {
 				curves.splice.apply(curves, [start, 0].concat(segs._curves));
 				insert += segs._curves.length;
@@ -7982,6 +9136,7 @@ var Path = PathItem.extend({
 		return this._length;
 	},
 
+<<<<<<< HEAD
 	getArea: function(_closed) {
 		var cached = _closed === undefined,
 			area = this._area;
@@ -7999,6 +9154,33 @@ var Path = PathItem.extend({
 				this._area = area;
 		}
 		return area;
+=======
+	getArea: function() {
+		if (this._area == null) {
+			var segments = this._segments,
+				count = segments.length,
+				last = count - 1,
+				area = 0;
+			for (var i = 0, l = this._closed ? count : last; i < l; i++) {
+				area += Curve.getArea(Curve.getValues(
+						segments[i], segments[i < last ? i + 1 : 0]));
+			}
+			this._area = area;
+		}
+		return this._area;
+	},
+
+	isClockwise: function() {
+		if (this._clockwise !== undefined)
+			return this._clockwise;
+		return this.getArea() >= 0;
+	},
+
+	setClockwise: function(clockwise) {
+		if (this.isClockwise() != (clockwise = !!clockwise))
+			this.reverse();
+		this._clockwise = clockwise;
+>>>>>>> skali
 	},
 
 	isClockwise: function() {
@@ -8047,6 +9229,7 @@ var Path = PathItem.extend({
 			this.setSelected(true);
 	},
 
+<<<<<<< HEAD
 	splitAt: function(location) {
 		var loc = typeof location === 'number'
 				? this.getLocationAt(location) : location,
@@ -8055,13 +9238,66 @@ var Path = PathItem.extend({
 			tMin = 4e-7,
 			tMax = 1 - tMin;
 		if (time >= tMax) {
+=======
+	flatten: function(maxDistance) {
+		var iterator = new PathIterator(this, 64, 0.1),
+			pos = 0,
+			step = iterator.length / Math.ceil(iterator.length / maxDistance),
+			end = iterator.length + (this._closed ? -step : step) / 2;
+		var segments = [];
+		while (pos <= end) {
+			segments.push(new Segment(iterator.getPointAt(pos)));
+			pos += step;
+		}
+		this.setSegments(segments);
+	},
+
+	reduce: function() {
+		var curves = this.getCurves();
+		for (var i = curves.length - 1; i >= 0; i--) {
+			var curve = curves[i];
+			if (!curve.hasHandles() && (curve.getLength() === 0
+					|| curve.isCollinear(curve.getNext())))
+				curve.remove();
+		}
+		return this;
+	},
+
+	simplify: function(tolerance) {
+		if (this._segments.length > 2) {
+			var fitter = new PathFitter(this, tolerance || 2.5);
+			this.setSegments(fitter.fit());
+		}
+	},
+
+	split: function(index, parameter) {
+		if (parameter === null)
+			return null;
+		if (arguments.length === 1) {
+			var arg = index;
+			if (typeof arg === 'number')
+				arg = this.getLocationAt(arg);
+			if (!arg)
+				return null
+			index = arg.index;
+			parameter = arg.parameter;
+		}
+		var tMin = 4e-7,
+			tMax = 1 - tMin;
+		if (parameter >= tMax) {
+>>>>>>> skali
 			index++;
 			time = 0;
 		}
 		var curves = this.getCurves();
 		if (index >= 0 && index < curves.length) {
+<<<<<<< HEAD
 			if (time >= tMin) {
 				curves[index++].divideAtTime(time);
+=======
+			if (parameter >= tMin) {
+				curves[index++].divide(parameter, true);
+>>>>>>> skali
 			}
 			var segs = this.removeSegments(index, this._segments.length, true),
 				path;
@@ -8071,7 +9307,11 @@ var Path = PathItem.extend({
 			} else {
 				path = new Path(Item.NO_INSERT);
 				path.insertAbove(this, true);
+<<<<<<< HEAD
 				path.copyAttributes(this);
+=======
+				this._clone(path);
+>>>>>>> skali
 			}
 			path._add(segs, 0);
 			this.addSegment(segs[0]);
@@ -8080,12 +9320,28 @@ var Path = PathItem.extend({
 		return null;
 	},
 
+<<<<<<< HEAD
 	split: function(index, time) {
 		var curve,
 			location = time === undefined ? index
 				: (curve = this.getCurves()[index])
 					&& curve.getLocationAtTime(time);
 		return location != null ? this.splitAt(location) : null;
+=======
+	reverse: function() {
+		this._segments.reverse();
+		for (var i = 0, l = this._segments.length; i < l; i++) {
+			var segment = this._segments[i];
+			var handleIn = segment._handleIn;
+			segment._handleIn = segment._handleOut;
+			segment._handleOut = handleIn;
+			segment._index = i;
+		}
+		this._curves = null;
+		if (this._clockwise !== undefined)
+			this._clockwise = !this._clockwise;
+		this._changed(9);
+>>>>>>> skali
 	},
 
 	join: function(path, tolerance) {
@@ -8364,17 +9620,22 @@ var Path = PathItem.extend({
 
 		if (type) {
 			var center = this.getPosition(true),
-				shape = new type({
+				shape = this._clone(new type({
 					center: center,
 					size: size,
 					radius: radius,
 					insert: false
+<<<<<<< HEAD
 				});
 			shape.copyAttributes(this, true);
 			shape._matrix.prepend(this._matrix);
 			shape.rotate(topCenter.subtract(center).getAngle() + 90);
 			if (insert === undefined || insert)
 				shape.insertAbove(this);
+=======
+				}), insert, false);
+			shape.rotate(topCenter.subtract(center).getAngle() + 90);
+>>>>>>> skali
 			return shape;
 		}
 		return null;
@@ -8506,7 +9767,11 @@ var Path = PathItem.extend({
 						: null;
 	}
 
+<<<<<<< HEAD
 }, Base.each(Curve._evaluateMethods,
+=======
+}, Base.each(Curve.evaluateMethods,
+>>>>>>> skali
 	function(name) {
 		this[name + 'At'] = function(offset) {
 			var loc = this.getLocationAt(offset);
@@ -8535,6 +9800,14 @@ var Path = PathItem.extend({
 	getLocationAt: function(offset) {
 		var curves = this.getCurves(),
 			length = 0;
+<<<<<<< HEAD
+=======
+		if (isParameter) {
+			var index = ~~offset,
+				curve = curves[index];
+			return curve ? curve.getLocationAt(offset - index, true) : null;
+		}
+>>>>>>> skali
 		for (var i = 0, l = curves.length; i < l; i++) {
 			var start = length,
 				curve = curves[i];
@@ -8547,7 +9820,10 @@ var Path = PathItem.extend({
 			return new CurveLocation(curves[curves.length - 1], 1);
 		return null;
 	}
+<<<<<<< HEAD
 
+=======
+>>>>>>> skali
 }),
 new function() {
 
@@ -8712,6 +9988,102 @@ new function() {
 	};
 },
 new function() {
+<<<<<<< HEAD
+=======
+	function getFirstControlPoints(rhs) {
+		var n = rhs.length,
+			x = [],
+			tmp = [],
+			b = 2;
+		x[0] = rhs[0] / b;
+		for (var i = 1; i < n; i++) {
+			tmp[i] = 1 / b;
+			b = (i < n - 1 ? 4 : 2) - tmp[i];
+			x[i] = (rhs[i] - x[i - 1]) / b;
+		}
+		for (var i = 1; i < n; i++) {
+			x[n - i - 1] -= tmp[n - i] * x[n - i];
+		}
+		return x;
+	}
+
+	return {
+		smooth: function() {
+			var segments = this._segments,
+				size = segments.length,
+				closed = this._closed,
+				n = size,
+				overlap = 0;
+			if (size <= 2)
+				return;
+			if (closed) {
+				overlap = Math.min(size, 4);
+				n += Math.min(size, overlap) * 2;
+			}
+			var knots = [];
+			for (var i = 0; i < size; i++)
+				knots[i + overlap] = segments[i]._point;
+			if (closed) {
+				for (var i = 0; i < overlap; i++) {
+					knots[i] = segments[i + size - overlap]._point;
+					knots[i + size + overlap] = segments[i]._point;
+				}
+			} else {
+				n--;
+			}
+			var rhs = [];
+
+			for (var i = 1; i < n - 1; i++)
+				rhs[i] = 4 * knots[i]._x + 2 * knots[i + 1]._x;
+			rhs[0] = knots[0]._x + 2 * knots[1]._x;
+			rhs[n - 1] = 3 * knots[n - 1]._x;
+			var x = getFirstControlPoints(rhs);
+
+			for (var i = 1; i < n - 1; i++)
+				rhs[i] = 4 * knots[i]._y + 2 * knots[i + 1]._y;
+			rhs[0] = knots[0]._y + 2 * knots[1]._y;
+			rhs[n - 1] = 3 * knots[n - 1]._y;
+			var y = getFirstControlPoints(rhs);
+
+			if (closed) {
+				for (var i = 0, j = size; i < overlap; i++, j++) {
+					var f1 = i / overlap,
+						f2 = 1 - f1,
+						ie = i + overlap,
+						je = j + overlap;
+					x[j] = x[i] * f1 + x[j] * f2;
+					y[j] = y[i] * f1 + y[j] * f2;
+					x[je] = x[ie] * f2 + x[je] * f1;
+					y[je] = y[ie] * f2 + y[je] * f1;
+				}
+				n--;
+			}
+			var handleIn = null;
+			for (var i = overlap; i <= n - overlap; i++) {
+				var segment = segments[i - overlap];
+				if (handleIn)
+					segment.setHandleIn(handleIn.subtract(segment._point));
+				if (i < n) {
+					segment.setHandleOut(
+							new Point(x[i], y[i]).subtract(segment._point));
+					handleIn = i < n - 1
+							? new Point(
+								2 * knots[i + 1]._x - x[i + 1],
+								2 * knots[i + 1]._y - y[i + 1])
+							: new Point(
+								(knots[n]._x + x[n - 1]) / 2,
+								(knots[n]._y + y[n - 1]) / 2);
+				}
+			}
+			if (closed && handleIn) {
+				var segment = this._segments[0];
+				segment.setHandleIn(handleIn.subtract(segment._point));
+			}
+		}
+	};
+},
+new function() {
+>>>>>>> skali
 	function getCurrentSegment(that) {
 		var segments = that._segments;
 		if (segments.length === 0)
@@ -8946,7 +10318,11 @@ new function() {
 	},
 
 statics: {
+<<<<<<< HEAD
 	getBounds: function(segments, closed, path, matrix, options, strokePadding) {
+=======
+	getBounds: function(segments, closed, style, matrix, strokePadding) {
+>>>>>>> skali
 		var first = segments[0];
 		if (!first)
 			return new Rectangle();
@@ -9096,11 +10472,15 @@ statics: {
 		var point = segment._point,
 			loc = segment.getLocation(),
 			normal = loc.getNormal().multiply(radius);
+<<<<<<< HEAD
 		if (matrix)
 			matrix._transformPoint(point, point);
 		if (strokeMatrix)
 			strokeMatrix._transformPoint(normal, normal);
 		if (isArea) {
+=======
+		if (area) {
+>>>>>>> skali
 			addPoint(point.subtract(normal));
 			addPoint(point.add(normal));
 		}
@@ -9311,7 +10691,10 @@ var CompoundPath = PathItem.extend({
 		for (var i = items.length - 1; i >= 0; i--) {
 			var item = items[i];
 			if (item instanceof CompoundPath) {
+<<<<<<< HEAD
 				items = items.slice();
+=======
+>>>>>>> skali
 				items.splice.apply(items, [i, 1].concat(item.removeChildren()));
 				item.remove();
 			}
@@ -9327,10 +10710,28 @@ var CompoundPath = PathItem.extend({
 
 	reduce: function reduce(options) {
 		var children = this._children;
+<<<<<<< HEAD
 		for (var i = children.length - 1; i >= 0; i--) {
 			var path = children[i].reduce(options);
 			if (path.isEmpty())
 				path.remove();
+=======
+		for (var i = 0, l = children.length; i < l; i++)
+			children[i].reverse();
+	},
+
+	smooth: function() {
+		for (var i = 0, l = this._children.length; i < l; i++)
+			this._children[i].smooth();
+	},
+
+	reduce: function reduce() {
+		var children = this._children;
+		for (var i = children.length - 1; i >= 0; i--) {
+			var path = children[i].reduce();
+			if (path.isEmpty())
+				children.splice(i, 1);
+>>>>>>> skali
 		}
 		if (children.length === 0) {
 			var path = new Path(Item.NO_INSERT);
@@ -9397,7 +10798,11 @@ var CompoundPath = PathItem.extend({
 			var child = children[i],
 				mx = child._matrix;
 			paths.push(child.getPathData(_matrix && !mx.isIdentity()
+<<<<<<< HEAD
 					? _matrix.appended(mx) : _matrix, _precision));
+=======
+					? _matrix.chain(mx) : _matrix, _precision));
+>>>>>>> skali
 		}
 		return paths.join(' ');
 	}
@@ -9451,6 +10856,7 @@ new function() {
 		return children[children.length - 1];
 	}
 
+<<<<<<< HEAD
 	return Base.each(['lineTo', 'cubicCurveTo', 'quadraticCurveTo', 'curveTo',
 			'arcTo', 'lineBy', 'cubicCurveBy', 'quadraticCurveBy', 'curveBy',
 			'arcBy'],
@@ -9468,6 +10874,24 @@ new function() {
 					this.addChild(path);
 				path.moveTo.apply(path, arguments);
 			},
+=======
+	var fields = {
+		moveTo: function() {
+			var current = getCurrentPath(this),
+				path = current && current.isEmpty() ? current
+						: new Path(Item.NO_INSERT);
+			if (path !== current)
+				this.addChild(path);
+			path.moveTo.apply(path, arguments);
+		},
+
+		moveBy: function() {
+			var current = getCurrentPath(this, true),
+				last = current && current.getLastSegment(),
+				point = Point.read(arguments);
+			this.moveTo(last ? point.add(last._point) : point);
+		},
+>>>>>>> skali
 
 			moveBy: function() {
 				var current = getCurrentPath(this, true),
@@ -9517,6 +10941,7 @@ PathItem.inject(new function() {
 		return result;
 	}
 
+<<<<<<< HEAD
 	function computeBoolean(path1, path2, operation) {
 		var operator = operators[operation];
 		operator[operation] = true;
@@ -9530,6 +10955,41 @@ PathItem.inject(new function() {
 		var crossings = divideLocations(
 				CurveLocation.expand(_path1.getCrossings(_path2))),
 			segments = [],
+=======
+	function preparePath(path, resolve) {
+		var res = path.clone(false).reduce().transform(null, true, true);
+		return resolve ? res.resolveCrossings().reorient() : res;
+	}
+
+	function finishBoolean(ctor, paths, path1, path2, reduce) {
+		var result = new ctor(Item.NO_INSERT);
+		result.addChildren(paths, true);
+		if (reduce)
+			result = result.reduce();
+		result.insertAbove(path2 && path1.isSibling(path2)
+				&& path1.getIndex() < path2.getIndex()
+					? path2 : path1);
+		result.setStyle(path1._style);
+		return result;
+	}
+
+	function computeBoolean(path1, path2, operation) {
+		if (!path1._children && !path1._closed)
+			return computeOpenBoolean(path1, path2, operation);
+		var _path1 = preparePath(path1, true),
+			_path2 = path2 && path1 !== path2 && preparePath(path2, true);
+		if (_path2 && /^(subtract|exclude)$/.test(operation)
+				^ (_path2.isClockwise() !== _path1.isClockwise()))
+			_path2.reverse();
+		var intersections = CurveLocation.expand(
+			_path1.getIntersections(_path2, function(inter) {
+				return _path2 && inter.isOverlap() || inter.isCrossing();
+			})
+		);
+		divideLocations(intersections);
+
+		var segments = [],
+>>>>>>> skali
 			monoCurves = [];
 
 		function collect(paths) {
@@ -9544,6 +11004,7 @@ PathItem.inject(new function() {
 		collect(_path1._children || [_path1]);
 		if (_path2)
 			collect(_path2._children || [_path2]);
+<<<<<<< HEAD
 		for (var i = 0, l = crossings.length; i < l; i++) {
 			propagateWinding(crossings[i]._segment, _path1, _path2, monoCurves,
 					operator);
@@ -9580,8 +11041,72 @@ PathItem.inject(new function() {
 				paths.unshift(path);
 				return true;
 			}
+=======
+		for (var i = 0, l = intersections.length; i < l; i++) {
+			propagateWinding(intersections[i]._segment, _path1, _path2,
+					monoCurves, operation);
+		}
+		for (var i = 0, l = segments.length; i < l; i++) {
+			var segment = segments[i];
+			if (segment._winding == null) {
+				propagateWinding(segment, _path1, _path2, monoCurves,
+						operation);
+			}
+		}
+		return finishBoolean(CompoundPath, tracePaths(segments, operation),
+				path1, path2, true);
+	}
+
+	function computeOpenBoolean(path1, path2, operation) {
+		if (!path2 || !path2._children && !path2._closed
+				|| !/^(subtract|intersect)$/.test(operation))
+			return null;
+		var _path1 = preparePath(path1, false),
+			_path2 = preparePath(path2, false),
+			intersections = _path1.getIntersections(_path2, function(inter) {
+				return inter.isOverlap() || inter.isCrossing();
+			}),
+			sub = operation === 'subtract',
+			paths = [];
+
+		function addPath(path) {
+			if (_path2.contains(path.getPointAt(path.getLength() / 2)) ^ sub) {
+				paths.unshift(path);
+				return true;
+			}
 		}
 
+		for (var i = intersections.length - 1; i >= 0; i--) {
+			var path = intersections[i].split();
+			if (path) {
+				if (addPath(path))
+					path.getFirstSegment().setHandleIn(0, 0);
+				_path1.getLastSegment().setHandleOut(0, 0);
+			}
+		}
+		addPath(_path1);
+		return finishBoolean(Group, paths, path1, path2);
+	}
+
+	function linkIntersections(from, to) {
+		var prev = from;
+		while (prev) {
+			if (prev === to)
+				return;
+			prev = prev._prev;
+		}
+		while (from._next && from._next !== to)
+			from = from._next;
+		if (!from._next) {
+			while (to._prev)
+				to = to._prev;
+			from._next = to;
+			to._prev = from;
+>>>>>>> skali
+		}
+	}
+
+<<<<<<< HEAD
 		for (var i = crossings.length - 1; i >= 0; i--) {
 			var path = crossings[i].split();
 			if (path) {
@@ -9645,6 +11170,35 @@ PathItem.inject(new function() {
 				if (noHandles)
 					clearCurves.push(curve, newCurve);
 				segment = newCurve._segment1;
+=======
+	function divideLocations(locations) {
+		var tMin = 4e-7,
+			tMax = 1 - tMin,
+			noHandles = false,
+			clearSegments = [],
+			prevCurve,
+			prevT;
+
+		for (var i = locations.length - 1; i >= 0; i--) {
+			var loc = locations[i],
+				curve = loc._curve,
+				t = loc._parameter,
+				origT = t;
+			if (curve !== prevCurve) {
+				noHandles = !curve.hasHandles();
+			} else if (prevT > 0) {
+				t /= prevT;
+			}
+			var segment;
+			if (t < tMin) {
+				segment = curve._segment1;
+			} else if (t > tMax) {
+				segment = curve._segment2;
+			} else {
+				segment = curve.divide(t, true, true)._segment1;
+				if (noHandles)
+					clearSegments.push(segment);
+>>>>>>> skali
 			}
 			loc._setSegment(segment);
 			var inter = segment._intersection,
@@ -9660,6 +11214,7 @@ PathItem.inject(new function() {
 				segment._intersection = dest;
 			}
 			prevCurve = curve;
+<<<<<<< HEAD
 			prevTime = origTime;
 		}
 		for (var i = 0, l = clearCurves.length; i < l; i++) {
@@ -9670,6 +11225,19 @@ PathItem.inject(new function() {
 
 	function getWinding(point, curves, horizontal) {
 		var epsilon = 2e-7,
+=======
+			prevT = origT;
+		}
+		for (var i = 0, l = clearSegments.length; i < l; i++) {
+			clearSegments[i].clearHandles();
+		}
+	}
+
+	function getWinding(point, curves, horizontal, testContains) {
+		var epsilon = 2e-7,
+			tMin = 4e-7,
+			tMax = 1 - tMin,
+>>>>>>> skali
 			px = point.x,
 			py = point.y,
 			windLeft = 0,
@@ -9682,6 +11250,7 @@ PathItem.inject(new function() {
 				yBottom = Infinity,
 				yBefore = py - epsilon,
 				yAfter = py + epsilon;
+<<<<<<< HEAD
 			for (var i = 0; i < length; i++) {
 				var values = curves[i].values,
 					count = Curve.solveCubic(values, 0, px, roots, 0, 1);
@@ -9691,12 +11260,25 @@ PathItem.inject(new function() {
 						yTop = y;
 					} else if (y > yAfter && y < yBottom) {
 						yBottom = y;
+=======
+			for (var i = 0, l = curves.length; i < l; i++) {
+				var values = curves[i].values;
+				if (Curve.solveCubic(values, 0, px, roots, 0, 1) > 0) {
+					for (var j = roots.length - 1; j >= 0; j--) {
+						var y = Curve.getPoint(values, roots[j]).y;
+						if (y < yBefore && y > yTop) {
+							yTop = y;
+						} else if (y > yAfter && y < yBottom) {
+							yBottom = y;
+						}
+>>>>>>> skali
 					}
 				}
 			}
 			yTop = (yTop + py) / 2;
 			yBottom = (yBottom + py) / 2;
 			if (yTop > -Infinity)
+<<<<<<< HEAD
 				windLeft = getWinding(new Point(px, yTop), curves).winding;
 			if (yBottom < Infinity)
 				windRight = getWinding(new Point(px, yBottom), curves).winding;
@@ -9749,6 +11331,57 @@ PathItem.inject(new function() {
 				if (isOnCurve && (i >= length - 1 || curves[i + 1].last)) {
 					windLeftOnCurve += 1;
 					windRightOnCurve -= 1;
+=======
+				windLeft = getWinding(new Point(px, yTop), curves, false,
+						testContains);
+			if (yBottom < Infinity)
+				windRight = getWinding(new Point(px, yBottom), curves, false,
+						testContains);
+		} else {
+			var xBefore = px - epsilon,
+				xAfter = px + epsilon;
+			var startCounted = false,
+				prevCurve,
+				prevT;
+			for (var i = 0, l = curves.length; i < l; i++) {
+				var curve = curves[i],
+					values = curve.values,
+					winding = curve.winding;
+				if (winding && (winding === 1
+						&& py >= values[1] && py <= values[7]
+						|| py >= values[7] && py <= values[1])
+					&& Curve.solveCubic(values, 1, py, roots, 0, 1) === 1) {
+					var t = roots[0];
+					if (!(
+						t > tMax && startCounted && curve.next !== curves[i + 1]
+						|| t < tMin && prevT > tMax
+							&& curve.previous === prevCurve)) {
+						var x = Curve.getPoint(values, t).x,
+							slope = Curve.getTangent(values, t).y,
+							counted = false;
+						if (Numerical.isZero(slope) && !Curve.isStraight(values)
+								|| t < tMin && slope * Curve.getTangent(
+									curve.previous.values, 1).y < 0
+								|| t > tMax && slope * Curve.getTangent(
+									curve.next.values, 0).y < 0) {
+							if (testContains && x >= xBefore && x <= xAfter) {
+								++windLeft;
+								++windRight;
+								counted = true;
+							}
+						} else if (x <= xBefore) {
+							windLeft += winding;
+							counted = true;
+						} else if (x >= xAfter) {
+							windRight += winding;
+							counted = true;
+						}
+						if (curve.previous !== curves[i - 1])
+							startCounted = t < tMin && counted;
+					}
+					prevCurve = curve;
+					prevT = t;
+>>>>>>> skali
 				}
 			}
 			if (windLeft === 0 && windRight === 0) {
@@ -9762,11 +11395,20 @@ PathItem.inject(new function() {
 		};
 	}
 
+<<<<<<< HEAD
 	function propagateWinding(segment, path1, path2, monoCurves, operator) {
 		var chain = [],
 			start = segment,
 			totalLength = 0,
 			winding;
+=======
+	function propagateWinding(segment, path1, path2, monoCurves, operation) {
+		var epsilon = 2e-7,
+			chain = [],
+			start = segment,
+			totalLength = 0,
+			windingSum = 0;
+>>>>>>> skali
 		do {
 			var curve = segment.getCurve(),
 				length = curve.getLength();
@@ -9774,6 +11416,7 @@ PathItem.inject(new function() {
 			totalLength += length;
 			segment = segment.getNext();
 		} while (segment && !segment._intersection && segment !== start);
+<<<<<<< HEAD
 		var length = totalLength / 2;
 		for (var j = 0, l = chain.length; j < l; j++) {
 			var entry = chain[j],
@@ -9813,23 +11456,91 @@ PathItem.inject(new function() {
 			return !!(seg && !seg._visited && (!operator
 					|| operator[seg._winding]
 					|| !excludeContour && operator.unite && seg._contour));
+=======
+		for (var i = 0; i < 3; i++) {
+			var length = totalLength * (i + 1) / 4;
+			for (var k = 0, m = chain.length; k < m; k++) {
+				var node = chain[k],
+					curveLength = node.length;
+				if (length <= curveLength) {
+					if (length < epsilon || curveLength - length < epsilon)
+						length = curveLength / 2;
+					var curve = node.curve,
+						path = curve._path,
+						parent = path._parent,
+						pt = curve.getPointAt(length),
+						hor = curve.isHorizontal();
+					if (parent instanceof CompoundPath)
+						path = parent;
+					windingSum += operation === 'subtract' && path2
+						&& (path === path1 && path2._getWinding(pt, hor)
+						|| path === path2 && !path1._getWinding(pt, hor))
+						? 0
+						: getWinding(pt, monoCurves, hor);
+					break;
+				}
+				length -= curveLength;
+			}
+		}
+		var winding = Math.round(windingSum / 3);
+		for (var j = chain.length - 1; j >= 0; j--)
+			chain[j].segment._winding = winding;
+	}
+
+	function tracePaths(segments, operation) {
+		var paths = [],
+			start,
+			otherStart,
+			operator = operators[operation],
+			overlapWinding = {
+				unite: { 1: 2 },
+				intersect: { 2: 1 }
+			}[operation];
+
+		function isValid(seg, adjusted) {
+			if (seg._visited)
+				return false;
+			if (!operator)
+				return true;
+			var winding = seg._winding,
+				inter = seg._intersection;
+			if (inter && adjusted && overlapWinding && inter.isOverlap())
+				winding = overlapWinding[winding] || winding;
+			return operator(winding);
+>>>>>>> skali
 		}
 
 		function isStart(seg) {
 			return seg === start || seg === otherStart;
 		}
 
+<<<<<<< HEAD
 		function findBestIntersection(inter, exclude) {
+=======
+		function findBestIntersection(inter, strict) {
+>>>>>>> skali
 			if (!inter._next)
 				return inter;
 			while (inter) {
 				var seg = inter._segment,
 					nextSeg = seg.getNext(),
+<<<<<<< HEAD
 					nextInter = nextSeg && nextSeg._intersection;
 				if (seg !== exclude && (isStart(seg) || isStart(nextSeg)
 					|| !seg._visited && !nextSeg._visited
 					&& (!operator || isValid(seg) && (isValid(nextSeg)
 						|| nextInter && isValid(nextInter._segment)))
+=======
+					nextInter = nextSeg._intersection;
+				if (isStart(nextSeg)
+					|| !seg._visited && !nextSeg._visited
+					&& (!operator
+						|| (!strict || isValid(seg))
+						&& (!(strict && nextInter && nextInter.isOverlap())
+							&& isValid(nextSeg)
+							|| !strict && nextInter
+							&& isValid(nextInter._segment))
+>>>>>>> skali
 					))
 					return inter;
 				inter = inter._next;
@@ -9837,6 +11548,7 @@ PathItem.inject(new function() {
 			return null;
 		}
 
+<<<<<<< HEAD
 		for (var i = 0, l = segments.length; i < l; i++) {
 			var path = null,
 				finished = false,
@@ -9875,9 +11587,44 @@ PathItem.inject(new function() {
 						if (operator
 								&& (operator.intersect || operator.subtract)) {
 							seg._visited = true;
+=======
+		function findStartSegment(inter, next) {
+			while (inter) {
+				var seg = inter._segment;
+				if (isStart(seg))
+					return seg;
+				inter = inter[next ? '_next' : '_prev'];
+			}
+		}
+
+		for (var i = 0, l = segments.length; i < l; i++) {
+			var seg = segments[i],
+				path = null,
+				finished = false;
+			if (!isValid(seg, true))
+				continue;
+			start = otherStart = null;
+			while (!finished) {
+				var inter = seg._intersection,
+					handleIn = path && seg._handleIn;
+				inter = inter && (findBestIntersection(inter, true)
+						|| findBestIntersection(inter, false)) || inter;
+				var other = inter && inter._segment;
+				if (other && isValid(other))
+					seg = other;
+				if (seg._visited) {
+					finished = isStart(seg);
+					if (!finished && inter) {
+						var found = findStartSegment(inter, true)
+							|| findStartSegment(inter, false);
+						if (found) {
+							seg = found;
+							finished = true;
+>>>>>>> skali
 						}
 						seg = other;
 					}
+<<<<<<< HEAD
 				}
 				if (finished || seg._visited) {
 					seg._visited = true;
@@ -9911,6 +11658,29 @@ PathItem.inject(new function() {
 				}
 				path = null;
 			}
+=======
+					break;
+				}
+				if (!path) {
+					path = new Path(Item.NO_INSERT);
+					start = seg;
+					otherStart = other;
+				}
+				path.add(new Segment(seg._point, handleIn, seg._handleOut));
+				seg._visited = true;
+				seg = seg.getNext();
+				finished = isStart(seg);
+			}
+			if (finished) {
+				path.firstSegment.setHandleIn(seg._handleIn);
+				path.setClosed(true);
+			} else if (path) {
+				console.error('Boolean operation resulted in open path',
+						'segments =', path._segments.length,
+						'length =', path.getLength());
+				path = null;
+			}
+>>>>>>> skali
 			if (path && (path._segments.length > 8
 					|| !Numerical.isZero(path.getArea()))) {
 				paths.push(path);
@@ -9942,6 +11712,7 @@ PathItem.inject(new function() {
 		},
 
 		divide: function(path) {
+<<<<<<< HEAD
 			return createResult(Group, [this.subtract(path),
 					this.intersect(path)], true, this, path);
 		},
@@ -10054,6 +11825,25 @@ PathItem.inject(new function() {
 				this.replaceWith(item);
 			}
 			return item;
+=======
+			return finishBoolean(Group,
+					[this.subtract(path), this.intersect(path)],
+					this, path, true);
+		},
+
+		resolveCrossings: function() {
+			var crossings = this.getCrossings();
+			if (!crossings.length)
+				return this;
+			divideLocations(CurveLocation.expand(crossings));
+			var paths = this._children || [this],
+				segments = [];
+			for (var i = 0, l = paths.length; i < l; i++) {
+				segments.push.apply(segments, paths[i]._segments);
+			}
+			return finishBoolean(CompoundPath, tracePaths(segments),
+					this, null, false);
+>>>>>>> skali
 		}
 	};
 });
@@ -10085,8 +11875,12 @@ Path.inject({
 				y1 = v[3],
 				y2 = v[5],
 				y3 = v[7];
+<<<<<<< HEAD
 			if (Curve.isStraight(v)
 					|| y0 >= y1 === y1 >= y2 && y1 >= y2 === y2 >= y3) {
+=======
+			if (Curve.isStraight(v)) {
+>>>>>>> skali
 				insertCurve(v);
 			} else {
 				var a = 3 * (y1 - y2) - y0 + y3,
@@ -10096,7 +11890,11 @@ Path.inject({
 					tMax = 1 - tMin,
 					roots = [],
 					n = Numerical.solveQuadratic(a, b, c, roots, tMin, tMax);
+<<<<<<< HEAD
 				if (n < 1) {
+=======
+				if (n === 0) {
+>>>>>>> skali
 					insertCurve(v);
 				} else {
 					roots.sort();
@@ -10143,6 +11941,7 @@ Path.inject({
 				intercepts = [];
 			for (var i = 0, l = curves.length; i < l; i++) {
 				var values = curves[i].values;
+<<<<<<< HEAD
 				if (curves[i].winding === 1
 						&& y > values[1] && y <= values[7]
 						|| y >= values[7] && y < values[1]) {
@@ -10151,6 +11950,17 @@ Path.inject({
 						intercepts.push(Curve.getPoint(values, roots[j]).x);
 					}
 				}
+=======
+				if ((curves[i].winding === 1
+						&& y >= values[1] && y <= values[7]
+						|| y >= values[7] && y <= values[1])
+						&& Curve.solveCubic(values, 1, y, roots, 0, 1) > 0) {
+					for (var j = roots.length - 1; j >= 0; j--)
+						xIntercepts.push(Curve.getPoint(values, roots[j]).x);
+				}
+				if (xIntercepts.length > 1)
+					break;
+>>>>>>> skali
 			}
 			intercepts.sort(function(a, b) { return a - b; });
 			point.x = (intercepts[0] + intercepts[1]) / 2;
@@ -10187,6 +11997,7 @@ var PathIterator = Base.extend({
 			computeParts(curve, segment1._index, 0, 1);
 		}
 
+<<<<<<< HEAD
 		function computeParts(curve, index, t1, t2) {
 			if ((t2 - t1) > minSpan
 					&& !(ignoreStraight && Curve.isStraight(curve))
@@ -10200,6 +12011,20 @@ var PathIterator = Base.extend({
 					dy = curve[7] - curve[1],
 					dist = Math.sqrt(dx * dx + dy * dy);
 				if (dist > 0) {
+=======
+		function computeParts(curve, index, minT, maxT) {
+			if ((maxT - minT) > minDifference
+					&& !Curve.isFlatEnough(curve, tolerance || 0.25)) {
+				var split = Curve.subdivide(curve, 0.5),
+					halfT = (minT + maxT) / 2;
+				computeParts(split[0], index, minT, halfT);
+				computeParts(split[1], index, halfT, maxT);
+			} else {
+				var x = curve[6] - curve[0],
+					y = curve[7] - curve[1],
+					dist = Math.sqrt(x * x + y * y);
+				if (dist > 1e-6) {
+>>>>>>> skali
 					length += dist;
 					parts.push({
 						offset: length,
@@ -10264,11 +12089,19 @@ var PathIterator = Base.extend({
 			ctx.bezierCurveTo.apply(ctx, curve.slice(2));
 		}
 	}
+<<<<<<< HEAD
 }, Base.each(Curve._evaluateMethods,
 	function(name) {
 		this[name + 'At'] = function(offset) {
 			var param = this._get(offset);
 			return Curve[name](this.curves[param.index], param.time);
+=======
+}, Base.each(Curve.evaluateMethods,
+	function(name) {
+		this[name + 'At'] = function(offset, weighted) {
+			var param = this.getParameterAt(offset);
+			return Curve[name](this.curves[param.index], param.value, weighted);
+>>>>>>> skali
 		};
 	}, {})
 );
@@ -10321,14 +12154,23 @@ var PathFitter = Base.extend({
 			return;
 		}
 		var uPrime = this.chordLengthParameterize(first, last),
+<<<<<<< HEAD
 			maxError = Math.max(error, error * error),
+=======
+			maxError = Math.max(this.error, this.error * this.error),
+>>>>>>> skali
 			split,
 			parametersInOrder = true;
 		for (var i = 0; i <= 4; i++) {
 			var curve = this.generateBezier(first, last, uPrime, tan1, tan2);
 			var max = this.findMaxError(first, last, curve, uPrime);
+<<<<<<< HEAD
 			if (max.error < error && parametersInOrder) {
 				this.addCurve(segments, curve);
+=======
+			if (max.error < this.error && parametersInOrder) {
+				this.addCurve(curve);
+>>>>>>> skali
 				return;
 			}
 			split = max.index;
@@ -10413,10 +12255,15 @@ var PathFitter = Base.extend({
 			}
 		}
 
+<<<<<<< HEAD
 		return [pt1,
 				pt1.add(handle1 || tan1.normalize(alpha1)),
 				pt2.add(handle2 || tan2.normalize(alpha2)),
 				pt2];
+=======
+		return [pt1, pt1.add(handle1 || tan1.normalize(alpha1)),
+				pt2.add(handle2 || tan2.normalize(alpha2)), pt2];
+>>>>>>> skali
 	},
 
 	reparameterize: function(first, last, u, curve) {
@@ -10511,8 +12358,14 @@ var TextItem = Item.extend({
 		return this._content === item._content;
 	},
 
+<<<<<<< HEAD
 	copyContent: function(source) {
 		this.setContent(source._content);
+=======
+	_clone: function _clone(copy, insert, includeMatrix) {
+		copy.setContent(this._content);
+		return _clone.base.call(this, copy, insert, includeMatrix);
+>>>>>>> skali
 	},
 
 	getContent: function() {
@@ -10902,6 +12755,10 @@ var Color = Base.extend(new function() {
 					read = 1;
 			}
 			this._type = type || 'rgb';
+<<<<<<< HEAD
+=======
+			this._id = UID.get(Color);
+>>>>>>> skali
 			if (!components) {
 				this._components = components = [];
 				var parsers = componentParsers[this._type];
@@ -11166,7 +13023,10 @@ var Gradient = Base.extend({
 		var stops = [];
 		for (var i = 0, l = this._stops.length; i < l; i++) {
 			stops[i] = this._stops[i].clone();
+<<<<<<< HEAD
 		}
+=======
+>>>>>>> skali
 		return new Gradient(stops, this._radial);
 	},
 
@@ -11760,6 +13620,7 @@ var View = Base.extend(Emitter, {
 		return true;
 	},
 
+<<<<<<< HEAD
 	_events: Base.each(
 		Item._itemHandlers.concat(['onResize', 'onKeyDown', 'onKeyUp']),
 		function(name) {
@@ -11770,6 +13631,25 @@ var View = Base.extend(Emitter, {
 					this.play();
 				},
 
+=======
+	_events: Base.each(['onResize', 'onMouseDown', 'onMouseUp', 'onMouseMove'],
+		function(name) {
+			this[name] = {
+				install: function(type) {
+					this._installEvent(type);
+				},
+
+				uninstall: function(type) {
+					this._uninstallEvent(type);
+				}
+			};
+		}, {
+			onFrame: {
+				install: function() {
+					this.play();
+				},
+
+>>>>>>> skali
 				uninstall: function() {
 					this.pause();
 				}
@@ -12036,9 +13916,14 @@ var View = Base.extend(Emitter, {
 	}
 },
 new function() {
+<<<<<<< HEAD
 	if (!window)
 		return;
 	var prevFocus,
+=======
+	var tool,
+		prevFocus,
+>>>>>>> skali
 		tempFocus,
 		dragging = false,
 		mouseDown = false;
@@ -12152,6 +14037,7 @@ new function() {
 		load: updateFocus
 	});
 
+<<<<<<< HEAD
 	var called = false,
 		prevented = false,
 		fallbacks = {
@@ -12217,6 +14103,9 @@ new function() {
 	}
 
 	var itemEventsMap = {
+=======
+	var mouseFlags = {
+>>>>>>> skali
 		mousedown: {
 			mousedown: 1,
 			mousedrag: 1,
@@ -12350,6 +14239,24 @@ new function() {
 			virtual[type] = (virtual[type] || 0) + sign;
 		},
 
+		_installEvent: function(type) {
+			var counters = this._eventCounters;
+			if (counters) {
+				for (var key in mouseFlags) {
+					counters[key] = (counters[key] || 0)
+							+ (mouseFlags[key][type] || 0);
+				}
+			}
+		},
+
+		_uninstallEvent: function(type) {
+			var counters = this._eventCounters;
+			if (counters) {
+				for (var key in mouseFlags)
+					counters[key] -= mouseFlags[key][type] || 0;
+			}
+		},
+
 		statics: {
 			updateFocus: updateFocus
 		}
@@ -12403,11 +14310,24 @@ var CanvasView = View.extend({
 		}
 	},
 
+<<<<<<< HEAD
 	getPixelSize: function getPixelSize(size) {
 		var agent = paper.agent,
 			pixels;
 		if (agent && agent.firefox) {
 			pixels = getPixelSize.base.call(this, size);
+=======
+	getPixelSize: function(size) {
+		var browser = paper.browser,
+			pixels;
+		if (browser && browser.firefox) {
+			var parent = this._element.parentNode,
+				temp = document.createElement('div');
+			temp.style.fontSize = size;
+			parent.appendChild(temp);
+			pixels = parseFloat(DomElement.getStyles(temp).fontSize);
+			parent.removeChild(temp);
+>>>>>>> skali
 		} else {
 			var ctx = this._context,
 				prevFont = ctx.font;
@@ -12429,8 +14349,14 @@ var CanvasView = View.extend({
 		return width;
 	},
 
+<<<<<<< HEAD
 	update: function() {
 		if (!this._needsUpdate)
+=======
+	update: function(force) {
+		var project = this._project;
+		if (!project || !force && !project._needsUpdate)
+>>>>>>> skali
 			return false;
 		var project = this._project,
 			ctx = this._context,
@@ -12441,6 +14367,111 @@ var CanvasView = View.extend({
 		this._needsUpdate = false;
 		return true;
 	}
+<<<<<<< HEAD
+=======
+},
+new function() {
+	var downPoint,
+		lastPoint,
+		overPoint,
+		downItem,
+		lastItem,
+		overItem,
+		dragItem,
+		dblClick,
+		clickTime;
+
+	function callEvent(view, type, event, point, target, lastPoint) {
+		var item = target,
+			mouseEvent;
+
+		function call(obj) {
+			if (obj.responds(type)) {
+				if (!mouseEvent) {
+					mouseEvent = new MouseEvent(type, event, point, target,
+							lastPoint ? point.subtract(lastPoint) : null);
+				}
+				if (obj.emit(type, mouseEvent) && mouseEvent.isStopped) {
+					event.preventDefault();
+					return true;
+				}
+			}
+		}
+
+		while (item) {
+			if (call(item))
+				return true;
+			item = item.getParent();
+		}
+		if (call(view))
+			return true;
+		return false;
+	}
+
+	return {
+		_handleEvent: function(type, point, event) {
+			if (!this._eventCounters[type])
+				return;
+			var project = this._project,
+				hit = project.hitTest(point, {
+					tolerance: 0,
+					fill: true,
+					stroke: true
+				}),
+				item = hit && hit.item,
+				stopped = false;
+			switch (type) {
+			case 'mousedown':
+				stopped = callEvent(this, type, event, point, item);
+				dblClick = lastItem == item && (Date.now() - clickTime < 300);
+				downItem = lastItem = item;
+				downPoint = lastPoint = overPoint = point;
+				dragItem = !stopped && item;
+				while (dragItem && !dragItem.responds('mousedrag'))
+					dragItem = dragItem._parent;
+				break;
+			case 'mouseup':
+				stopped = callEvent(this, type, event, point, item, downPoint);
+				if (dragItem) {
+					if (lastPoint && !lastPoint.equals(point))
+						callEvent(this, 'mousedrag', event, point, dragItem,
+								lastPoint);
+					if (item !== dragItem) {
+						overPoint = point;
+						callEvent(this, 'mousemove', event, point, item,
+								overPoint);
+					}
+				}
+				if (!stopped && item && item === downItem) {
+					clickTime = Date.now();
+					callEvent(this, dblClick && downItem.responds('doubleclick')
+							? 'doubleclick' : 'click', event, downPoint, item);
+					dblClick = false;
+				}
+				downItem = dragItem = null;
+				break;
+			case 'mousemove':
+				if (dragItem)
+					stopped = callEvent(this, 'mousedrag', event, point,
+							dragItem, lastPoint);
+				if (!stopped) {
+					if (item !== overItem)
+						overPoint = point;
+					stopped = callEvent(this, type, event, point, item,
+							overPoint);
+				}
+				lastPoint = overPoint = point;
+				if (item !== overItem) {
+					callEvent(this, 'mouseleave', event, point, overItem);
+					overItem = item;
+					callEvent(this, 'mouseenter', event, point, item);
+				}
+				break;
+			}
+			return stopped;
+		}
+	};
+>>>>>>> skali
 });
 
 var Event = Base.extend({
@@ -12542,6 +14573,7 @@ var Key = new function() {
 			}
 		});
 
+<<<<<<< HEAD
 	function getKey(event) {
 		var key = event.key || event.keyIdentifier;
 		key = /^U\+/.test(key)
@@ -12552,6 +14584,12 @@ var Key = new function() {
 		return keyLookup[key] ||
 				(key.length > 1 ? Base.hyphenate(key) : key.toLowerCase());
 	}
+=======
+	charCodeMap = {},
+	keyMap = {},
+	commandFixMap,
+	downCode;
+>>>>>>> skali
 
 	function handleKey(down, key, character, event) {
 		var type = down ? 'keydown' : 'keyup',
@@ -12580,9 +14618,34 @@ var Key = new function() {
 		} else if (down && metaFixMap) {
 			metaFixMap[key] = character;
 		}
+<<<<<<< HEAD
 		if (view) {
 			view._handleKeyEvent(down ? 'keydown' : 'keyup', event, key,
 					character);
+=======
+		if (specialKey && (name = Base.camelize(specialKey)) in modifiers) {
+			modifiers[name] = down;
+			var browser = paper.browser;
+			if (name === 'command' && browser && browser.mac) {
+				if (down) {
+					commandFixMap = {};
+				} else {
+					for (var code in commandFixMap) {
+						if (code in charCodeMap)
+							handleKey(false, code, commandFixMap[code], event);
+					}
+					commandFixMap = null;
+				}
+			}
+		} else if (down && commandFixMap) {
+			commandFixMap[keyCode] = charCode;
+		}
+		if (tool && tool.responds(type)) {
+			paper = scope;
+			tool.emit(type, new KeyEvent(down, key, character, event));
+			if (view)
+				view.update();
+>>>>>>> skali
 		}
 	}
 
@@ -12804,6 +14867,7 @@ var Tool = PaperScopeItem.extend({
 		this._minDistance = this._maxDistance = distance;
 	},
 
+<<<<<<< HEAD
 	_handleMouseEvent: function(type, event, point, mouse) {
 		paper = this._scope;
 		if (mouse.drag && !this.responds(type))
@@ -12825,6 +14889,21 @@ var Tool = PaperScopeItem.extend({
 					var vector = pt.subtract(toolPoint),
 						distance = vector.getLength();
 					if (distance < (minDistance || 0))
+=======
+	_updateEvent: function(type, point, minDistance, maxDistance, start,
+			needsChange, matchMaxDistance) {
+		if (!start) {
+			if (minDistance != null || maxDistance != null) {
+				var minDist = minDistance != null ? minDistance : 0,
+					vector = point.subtract(this._point),
+					distance = vector.getLength();
+				if (distance < minDist)
+					return false;
+				if (maxDistance != null && maxDistance != 0) {
+					if (distance > maxDistance) {
+						point = this._point.add(vector.normalize(maxDistance));
+					} else if (matchMaxDistance) {
+>>>>>>> skali
 						return false;
 					if (maxDistance) {
 						pt = toolPoint.add(vector.normalize(
@@ -12866,6 +14945,7 @@ var Tool = PaperScopeItem.extend({
 });
 
 var Http = {
+<<<<<<< HEAD
 	request: function(options) {
 		var xhr = new window.XMLHttpRequest();
 		xhr.open((options.method || 'get').toUpperCase(), options.url,
@@ -12877,6 +14957,23 @@ var Http = {
 			if (status === 0 || status === 200) {
 				if (options.onLoad) {
 					options.onLoad.call(xhr, xhr.responseText);
+=======
+	request: function(method, url, callback, async) {
+		async = (async === undefined) ? true : async;
+		var xhr = new (window.ActiveXObject || XMLHttpRequest)(
+					'Microsoft.XMLHTTP');
+		xhr.open(method.toUpperCase(), url, async);
+		if ('overrideMimeType' in xhr)
+			xhr.overrideMimeType('text/plain');
+		xhr.onreadystatechange = function() {
+			if (xhr.readyState === 4) {
+				var status = xhr.status;
+				if (status === 0 || status === 200) {
+					callback.call(xhr, xhr.responseText);
+				} else {
+					throw new Error('Could not load ' + url + ' (Error '
+							+ status + ')');
+>>>>>>> skali
 				}
 			} else {
 				xhr.onerror();
@@ -13330,6 +15427,7 @@ new function() {
 	}
 
 	function exportGroup(item, options) {
+                //xxx333
 		var attrs = getTransform(item._matrix),
 			children = item._children;
 		var node = SvgElement.create('g', attrs, formatter);
@@ -13362,7 +15460,11 @@ new function() {
 		attrs.height = size.height;
 		attrs.href = options.embedImages === false && image && image.src
 				|| item.toDataURL();
+<<<<<<< HEAD
 		return SvgElement.create('image', attrs, formatter);
+=======
+		return createElement('image', attrs);
+>>>>>>> skali
 	}
 
 	function exportPath(item, options) {
@@ -13376,11 +15478,21 @@ new function() {
 			length = segments.length,
 			type,
 			attrs = getTransform(item._matrix);
+<<<<<<< HEAD
 		if (matchShapes && length >= 2 && !item.hasHandles()) {
 			if (length > 2) {
 				type = item._closed ? 'polygon' : 'polyline';
 				var parts = [];
 				for(var i = 0; i < length; i++)
+=======
+		if (segments.length === 0)
+			return null;
+		if (matchShapes && !item.hasHandles()) {
+			if (segments.length >= 3) {
+				type = item._closed ? 'polygon' : 'polyline';
+				var parts = [];
+				for(var i = 0, l = segments.length; i < l; i++)
+>>>>>>> skali
 					parts.push(formatter.point(segments[i]._point));
 				attrs.points = parts.join(' ');
 			} else {
@@ -13527,6 +15639,7 @@ new function() {
 	};
 
 	function applyStyle(item, node, isRoot) {
+		//xxx444
 		var attrs = {},
 			parent = !isRoot && item.getParent(),
 			style = [];
@@ -13538,9 +15651,28 @@ new function() {
 			var get = entry.get,
 				type = entry.type,
 				value = item[get]();
+        		var found = false
+			var v
+			if(!parent){
+				found = true
+			} else {
+
+				if(parent.className == 'Layer'){
+
+					v = Base.parentValues[get]
+
+				} else {
+					v = parent[get]()
+
+				}
+
+				if(!Base.equals(v, value)){
+					found = true
+				}
+			}
 			if (entry.exportFilter
 					? entry.exportFilter(item, value)
-					: !parent || !Base.equals(parent[get](), value)) {
+					: found) {
 				if (type === 'color' && value != null) {
 					var alpha = value.getAlpha();
 					if (alpha < 1)
@@ -13612,6 +15744,17 @@ new function() {
 	}
 
 	function exportSVG(item, options, isRoot) {
+                //xxx222
+		if(item.className == 'Layer'){
+			var parentValues = {}
+			Base.each(SVGStyles, function(entry) {
+				var get = entry.get
+				var v = item[get]()
+				parentValues[get] = v
+			})
+			//console.log(parentValues)
+			Base.parentValues = parentValues
+		}
 		var exporter = exporters[item._class],
 			node = exporter && exporter(item, options);
 		if (node) {
@@ -13634,6 +15777,7 @@ new function() {
 
 	Item.inject({
 		exportSVG: function(options) {
+                        //xxx111
 			options = setOptions(options);
 			return exportDefinitions(exportSVG(this, options, true), options);
 		}
@@ -13736,16 +15880,26 @@ new function() {
 		if (isRoot) {
 			var defs = node.querySelectorAll('defs');
 			for (var i = 0, l = defs.length; i < l; i++) {
+<<<<<<< HEAD
 				importNode(defs[i], options, false);
+=======
+				importSVG(defs[i], options, false);
+>>>>>>> skali
 			}
 		}
 		for (var i = 0, l = nodes.length; i < l; i++) {
 			var childNode = nodes[i],
 				child;
 			if (childNode.nodeType === 1
+<<<<<<< HEAD
 					&& !/^defs$/i.test(childNode.nodeName)
 					&& (child = importNode(childNode, options, false))
 					&& !(child instanceof SymbolDefinition))
+=======
+					&& childNode.nodeName.toLowerCase() !== 'defs'
+					&& (child = importSVG(childNode, options, false))
+					&& !(child instanceof Symbol))
+>>>>>>> skali
 				children.push(child);
 		}
 		item.addChildren(children);
@@ -13943,7 +16097,11 @@ new function() {
 			color.setAlpha(parseFloat(value));
 	}
 
+<<<<<<< HEAD
 	var attributes = Base.set(Base.each(SvgStyles, function(entry) {
+=======
+	var attributes = Base.set(Base.each(SVGStyles, function(entry) {
+>>>>>>> skali
 		this[entry.attribute] = function(item, value) {
 			if (item[entry.set]) {
 				item[entry.set](convertValue(value, entry.type, entry.fromSVG));

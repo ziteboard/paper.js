@@ -98,6 +98,7 @@ Base.exports.PaperScript = function() {
      *
      * @name PaperScript.compile
      * @function
+<<<<<<< HEAD
      *
      * @option options.url {String} the url of the source, for source-map
      *     generation
@@ -108,6 +109,11 @@ Base.exports.PaperScript = function() {
      * @param {Object} [option] the compilation options
      * @return {Object} an object holding the compiled PaperScript translated
      *     into JavaScript code along with source-maps and other information.
+=======
+     * @param {String} code the PaperScript code
+     * @param {String} url the url of the source, for source-map debugging
+     * @return {String} the compiled PaperScript as JavaScript code
+>>>>>>> skali
      */
     function compile(code, options) {
         if (!code)
@@ -369,6 +375,7 @@ Base.exports.PaperScript = function() {
      *
      * @name PaperScript.execute
      * @function
+<<<<<<< HEAD
      *
      * @option options.url {String} the url of the source, for source-map
      *     generation
@@ -380,6 +387,11 @@ Base.exports.PaperScript = function() {
      * @param {Object} [option] the compilation options
      * @return {Object} an object holding the compiled PaperScript translated
      *     into JavaScript code along with source-maps and other information.
+=======
+     * @param {String} code the PaperScript code
+     * @param {PaperScope} scope the scope for which the code is executed
+     * @param {String} url the url of the source, for source-map debugging
+>>>>>>> skali
      */
     function execute(code, scope, options) {
         // Set currently active scope.
@@ -503,12 +515,17 @@ Base.exports.PaperScript = function() {
             // project is created for it now.
             var canvasId = PaperScope.getAttribute(script, 'canvas'),
                 canvas = document.getElementById(canvasId),
+<<<<<<< HEAD
                 // To avoid possible duplicate browser requests for PaperScript
                 // files, support the data-src attribute as well as src:
                 // TODO: Consider switching from data-paper- to data- prefix
                 // in PaperScope.getAttribute() and use it here too:
                 src = script.src || script.getAttribute('data-src'),
                 async = PaperScope.hasAttribute(script, 'async'),
+=======
+                src = script.src,
+                async = PaperScope.hasAttribute(script, 'asyc'),
+>>>>>>> skali
                 scopeAttribute = 'data-paper-scope';
             if (!canvas)
                 throw new Error('Unable to find canvas with id "'
@@ -526,6 +543,7 @@ Base.exports.PaperScript = function() {
                 // same order the script tags appear.
                 // If the async attribute is specified on the script element,
                 // request the source asynchronously and execute as soon as
+<<<<<<< HEAD
                 // it is retrieved.
                 Http.request({
                     url: src,
@@ -535,6 +553,12 @@ Base.exports.PaperScript = function() {
                         execute(code, scope, src);
                     }
                 });
+=======
+                // it is retreived.
+                Http.request('get', src, function(code) {
+                    execute(code, scope, src);
+                }, async);
+>>>>>>> skali
             } else {
                 // We can simply get the code form the script tag.
                 execute(script.innerHTML, scope, script.baseURI);
@@ -562,10 +586,16 @@ Base.exports.PaperScript = function() {
      * @name PaperScript.load
      * @function
      * @param {HTMLScriptElement} [script=null] the script to load. If none is
+<<<<<<< HEAD
      *     provided, all scripts of the HTML document are iterated over and
      *     loaded
      * @return {PaperScope} the scope produced for the passed `script`, or
      *     `undefined` of multiple scripts area loaded
+=======
+     * provided, all scripts of the HTML document are iterated over and loaded
+     * @return {PaperScope} the scope produced for the passed {@code script}, or
+     * {@code undefined} of multiple scripts area loaded
+>>>>>>> skali
      */
     function load(script) {
         return script ? loadScript(script) : loadAll();

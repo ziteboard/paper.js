@@ -651,8 +651,13 @@ var Matrix = Base.extend(/** @lends Matrix# */{
      * into `scaling`, `rotation` and `shearing`, and returns an object with
      * these properties if it succeeded, `null` otherwise.
      *
+<<<<<<< HEAD
      * @return {Object} the decomposed matrix, or `null` if decomposition is not
      *     possible
+=======
+     * @return {Object} the decomposed matrix, or {@code null} if decomposition
+     * is not possible
+>>>>>>> skali
      */
     decompose: function() {
         // http://dev.w3.org/csswg/css3-2d-transforms/#matrix-decomposition

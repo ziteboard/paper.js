@@ -31,7 +31,11 @@ var Emitter = {
                 handlers.push(func);
                 // See if this is the first handler that we're attaching,
                 // and call install if defined.
+<<<<<<< HEAD
                 if (entry && entry.install && handlers.length === 1)
+=======
+                if (entry && entry.install && handlers.length == 1)
+>>>>>>> skali
                     entry.install.call(this, type);
             }
         }
@@ -80,6 +84,7 @@ var Emitter = {
         var handlers = this._callbacks && this._callbacks[type];
         if (!handlers)
             return false;
+<<<<<<< HEAD
         var args = [].slice.call(arguments, 1),
             // Set the current target to `this` if the event object defines
             // #target but not #currentTarget.
@@ -96,6 +101,18 @@ var Emitter = {
                 if (event && event.stop)
                     event.stop();
                 // Stop propagation right now!
+=======
+        var args = [].slice.call(arguments, 1);
+        // Create a clone of the handlers list so changes caused by on / off
+        // won't throw us off track here:
+        handlers = handlers.slice();
+        for (var i = 0, l = handlers.length; i < l; i++) {
+            // When the handler function returns false, prevent the default
+            // behavior and stop propagation of the event by calling stop()
+            if (handlers[i].apply(this, args) === false) {
+                if (event && event.stop)
+                    event.stop();
+>>>>>>> skali
                 break;
            }
         }
@@ -117,6 +134,7 @@ var Emitter = {
         var types = this._eventTypes,
             handlers = this._callbacks,
             key = install ? 'install' : 'uninstall';
+<<<<<<< HEAD
         if (types) {
             for (var type in handlers) {
                 if (handlers[type].length > 0) {
@@ -126,6 +144,16 @@ var Emitter = {
                         func.call(this, type);
                 }
         }
+=======
+        for (var type in handlers) {
+            if (handlers[type].length > 0) {
+                var types = this._eventTypes,
+                    entry = types && types[type],
+                    func = entry && entry[key];
+                if (func)
+                    func.call(this, type);
+            }
+>>>>>>> skali
         }
     },
 

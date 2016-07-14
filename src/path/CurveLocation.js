@@ -38,6 +38,7 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
      * Creates a new CurveLocation object.
      *
      * @param {Curve} curve
+<<<<<<< HEAD
      * @param {Number} time
      * @param {Point} [point]
      */
@@ -69,11 +70,33 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
         this._version = path ? path._version : 0;
         this._curve = curve;
         this._segment = null; // To be determined, see #getSegment()
+=======
+     * @param {Number} parameter
+     * @param {Point} [point]
+     */
+    initialize: function CurveLocation(curve, parameter, point, _curve2,
+            _parameter2, _point2, _distance) {
+        // Define this CurveLocation's unique id.
+        // NOTE: We do not use the same pool as the rest of the library here,
+        // since this is only required to be unique at runtime among other
+        // CurveLocation objects.
+        this._id = UID.get(CurveLocation);
+        var path = curve._path;
+        this._version = path ? path._version : 0;
+        this._curve = curve;
+        this._parameter = parameter;
+        this._point = point || curve.getPointAt(parameter, true);
+        this._curve2 = _curve2;
+        this._parameter2 = _parameter2;
+        this._point2 = _point2;
+        this._distance = _distance;
+>>>>>>> skali
         // Also store references to segment1 and segment2, in case path
         // splitting / dividing is going to happen, in which case the segments
         // can be used to determine the new curves, see #getCurve(true)
         this._segment1 = curve._segment1;
         this._segment2 = curve._segment2;
+<<<<<<< HEAD
     },
 
     _setSegment: function(segment) {
@@ -82,6 +105,8 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
         this._time = segment === this._segment1 ? 0 : 1;
         // To avoid issues with imprecision in getCurve() / trySegment()
         this._point = segment._point.clone();
+=======
+>>>>>>> skali
     },
 
     /**
@@ -119,6 +144,7 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
      * @type Curve
      */
     getCurve: function() {
+<<<<<<< HEAD
         var path = this._path,
             that = this;
         if (path && path._version !== this._version) {
@@ -147,6 +173,32 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
             || trySegment(this._segment)
             || trySegment(this._segment1)
             || trySegment(this._segment2.getPrevious());
+=======
+        var curve = this._curve,
+            path = curve && curve._path;
+        if (path && path._version !== this._version) {
+            // If the path's segments have changed in the meantime, clear the
+            // internal _parameter value and force refetching of the correct
+            // curve again here.
+            curve = null;
+            this._parameter = null;
+        }
+        if (!curve) {
+            // If we're asked to get the curve uncached, access current curve
+            // objects through segment1 / segment2. Since path splitting or
+            // dividing might have happened in the meantime, try segment1's
+            // curve, and see if _point lies on it still, otherwise assume it's
+            // the curve before segment2.
+            curve = this._segment1.getCurve();
+            if (curve.getParameterOf(this._point) == null)
+                curve = this._segment2.getPrevious().getCurve();
+            this._curve = curve;
+            // Fetch path again as it could be on a new one through split()
+            path = curve._path;
+            this._version = path ? path._version : 0;
+        }
+        return curve;
+>>>>>>> skali
     },
 
     /**
@@ -173,6 +225,7 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
     },
 
     /**
+<<<<<<< HEAD
      * The curve-time parameter, as used by various bezier curve calculations.
      * It is value between `0` (beginning of the curve) and `1` (end of the
      * curve).
@@ -201,6 +254,29 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
      *
      * @bean
      * @type Point
+=======
+     * The curve parameter, as used by various bezier curve calculations. It is
+     * value between {@code 0} (beginning of the curve) and {@code 1} (end of
+     * the curve).
+     *
+     * @type Number
+     * @bean
+     */
+    getParameter: function() {
+        var curve = this.getCurve(),
+            parameter = this._parameter;
+        return curve && parameter == null
+            ? this._parameter = curve.getParameterOf(this._point)
+            : parameter;
+    },
+
+    /**
+     * The point which is defined by the {@link #curve} and
+     * {@link #parameter}.
+     *
+     * @type Point
+     * @bean
+>>>>>>> skali
      */
     getPoint: function() {
         return this._point;
@@ -248,11 +324,27 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
      * result of a call to {@link PathItem#getIntersections(path)} /
      * {@link Curve#getIntersections(curve)}.
      *
+<<<<<<< HEAD
+=======
+     * @type CurveLocation
+>>>>>>> skali
      * @bean
      * @type CurveLocation
      */
     getIntersection: function() {
+<<<<<<< HEAD
         return this._intersection;
+=======
+        var intersection = this._intersection;
+        if (!intersection && this._curve2) {
+            // If we have the parameter on the other curve use that for
+            // intersection rather than the point.
+            this._intersection = intersection = new CurveLocation(this._curve2,
+                    this._parameter2, this._point2 || this._point, this);
+            intersection._intersection = this;
+        }
+        return intersection;
+>>>>>>> skali
     },
 
     /**
@@ -294,6 +386,7 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
     // DOCS: divide(), split()
 
     divide: function() {
+<<<<<<< HEAD
         var curve = this.getCurve(),
             res = null;
         if (curve) {
@@ -303,11 +396,19 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
                 this._setSegment(res._segment1);
         }
         return res;
+=======
+        var curve = this.getCurve();
+        return curve && curve.divide(this.getParameter(), true);
+>>>>>>> skali
     },
 
     split: function() {
         var curve = this.getCurve();
+<<<<<<< HEAD
         return curve ? curve.splitAtTime(this.getTime()) : null;
+=======
+        return curve && curve.split(this.getParameter(), true);
+>>>>>>> skali
     },
 
     /**
@@ -318,6 +419,7 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
      * @param {CurveLocation} location
      * @return {Boolean} {@true if the locations are equal}
      */
+<<<<<<< HEAD
     equals: function(loc, _ignoreOther) {
         var res = this === loc,
             epsilon = /*#=*/Numerical.GEOMETRIC_EPSILON;
@@ -351,6 +453,23 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
                                 loc._intersection, true)));
         }
         return res;
+=======
+    equals: function(loc) {
+        var abs = Math.abs,
+            // Use the same tolerance for curve time parameter comparisons as
+            // in Curve.js when considering two locations the same.
+            tolerance = /*#=*/Numerical.TOLERANCE;
+        return this === loc
+                || loc instanceof CurveLocation
+                    // Call getCurve() and getParameter() to keep in sync
+                    && this.getCurve() === loc.getCurve()
+                    && abs(this.getParameter() - loc.getParameter()) < tolerance
+                    // _curve2/_parameter2 are only used for Boolean operations
+                    // and don't need syncing there.
+                    && this._curve2 === loc._curve2
+                    && abs(this._parameter2 - loc._parameter2) < tolerance
+                || false;
+>>>>>>> skali
     },
 
     /**

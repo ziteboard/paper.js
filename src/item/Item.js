@@ -138,12 +138,20 @@ new function() { // Injection scope for various item event handlers
             internal = hasProps && props.internal === true,
             matrix = this._matrix = new Matrix(),
             // Allow setting another project than the currently active one.
+<<<<<<< HEAD
             project = hasProps && props.project || paper.project,
             settings = paper.settings;
         this._id = internal ? null : UID.get();
         this._parent = this._index = null;
         // Inherit the applyMatrix setting from settings.applyMatrix
         this._applyMatrix = this._canApplyMatrix && settings.applyMatrix;
+=======
+            project = hasProps && props.project || paper.project;
+        if (!internal)
+            this._id = UID.get();
+        // Inherit the applyMatrix setting from paper.settings.applyMatrix
+        this._applyMatrix = this._canApplyMatrix && paper.settings.applyMatrix;
+>>>>>>> skali
         // Handle matrix before everything else, to avoid issues with
         // #addChild() calling _changed() and accessing _matrix already.
         if (point)
@@ -809,6 +817,7 @@ new function() { // Injection scope for various item event handlers
     // See _matrix parameter above.
     beans: true,
 
+<<<<<<< HEAD
     getBounds: function(matrix, options) {
         var hasMatrix = options || matrix instanceof Matrix,
             opts = Base.set({}, hasMatrix ? options : matrix,
@@ -835,6 +844,45 @@ new function() { // Injection scope for various item event handlers
                 ? new LinkedRectangle(bounds.x, bounds.y, bounds.width,
                         bounds.height, this, 'setBounds')
                 : bounds;
+=======
+    /**
+     * Protected method used in all the bounds getters. It loops through all the
+     * children, gets their bounds and finds the bounds around all of them.
+     * Subclasses override it to define calculations for the various required
+     * bounding types.
+     */
+    _getBounds: function(getter, matrix, cacheItem) {
+        // Note: We cannot cache these results here, since we do not get
+        // _changed() notifications here for changing geometry in children.
+        // But cacheName is used in sub-classes such as PlacedSymbol and Raster.
+        var children = this._children;
+        // TODO: What to return if nothing is defined, e.g. empty Groups?
+        // Scriptographer behaves weirdly then too.
+        if (!children || children.length == 0)
+            return new Rectangle();
+        // Call _updateBoundsCache() even when the group is currently empty
+        // (or only holds empty / invisible items), so future changes in these
+        // items will cause right handling of _boundsCache.
+        Item._updateBoundsCache(this, cacheItem);
+        var x1 = Infinity,
+            x2 = -x1,
+            y1 = x1,
+            y2 = x2;
+        for (var i = 0, l = children.length; i < l; i++) {
+            var child = children[i];
+            if (child._visible && !child.isEmpty()) {
+                var rect = child._getCachedBounds(getter,
+                        matrix && matrix.chain(child._matrix), cacheItem);
+                x1 = Math.min(rect.x, x1);
+                y1 = Math.min(rect.y, y1);
+                x2 = Math.max(rect.x + rect.width, x2);
+                y2 = Math.max(rect.y + rect.height, y2);
+            }
+        }
+        return isFinite(x1)
+                ? new Rectangle(x1, y1, x2 - x1, y2 - y1)
+                : new Rectangle();
+>>>>>>> skali
     },
 
     setBounds: function(/* rect */) {
@@ -897,6 +945,7 @@ new function() { // Injection scope for various item event handlers
         // See if we can cache these bounds. We only cache the bounds
         // transformed with the internally stored _matrix, (the default if no
         // matrix is passed).
+<<<<<<< HEAD
         matrix = matrix && matrix._orNullIfIdentity();
         // Do not transform by the internal matrix for internal, untransformed
         // bounds.
@@ -915,6 +964,24 @@ new function() { // Injection scope for various item event handlers
         if (cacheKey && this._bounds && cacheKey in this._bounds)
             return this._bounds[cacheKey].rect.clone();
         var bounds = this._getBounds(matrix || _matrix, options);
+=======
+        matrix = matrix && matrix.orNullIfIdentity();
+        // Do not transform by the internal matrix if there is a internalGetter.
+        var _matrix = internalGetter ? null : this._matrix.orNullIfIdentity(),
+            cache = (!matrix || matrix.equals(_matrix)) && getter;
+        // Note: This needs to happen before returning cached values, since even
+        // then, _boundsCache needs to be kept up-to-date.
+        Item._updateBoundsCache(this._parent || this._parentSymbol, cacheItem);
+        if (cache && this._bounds && this._bounds[cache])
+            return this._bounds[cache].clone();
+        // If we're caching bounds on this item, pass it on as cacheItem, so the
+        // children can setup the _boundsCache structures for it.
+        // getInternalBounds is getBounds untransformed. Do not replace earlier,
+        // so we can cache both separately, since they're not in the same
+        // transformation space!
+        var bounds = this._getBounds(internalGetter || getter,
+                matrix || _matrix, cacheItem);
+>>>>>>> skali
         // If we can cache the result, update the _bounds cache structure
         // before returning
         if (cacheKey) {
@@ -956,6 +1023,34 @@ new function() { // Injection scope for various item event handlers
          */
         _updateBoundsCache: function(parent, item) {
             if (parent && item) {
+                // Set-up the parent's boundsCache structure if it does not
+                // exist yet and add the item to it.
+                var id = item._id,
+                    ref = parent._boundsCache = parent._boundsCache || {
+                        // Use a hash-table for ids and an array for the list,
+                        // so we can keep track of items that were added already
+                        ids: {},
+                        list: []
+                    };
+                if (!ref.ids[id]) {
+                    ref.list.push(item);
+                    ref.ids[id] = item;
+                }
+            }
+        },
+
+        /**
+         * Set up a boundsCache structure that keeps track of items that keep
+         * cached bounds that depend on this item. We store this in the parent,
+         * for multiple reasons:
+         * The parent receives CHILDREN change notifications for when its
+         * children are added or removed and can thus clear the cache, and we
+         * save a lot of memory, e.g. when grouping 100 items and asking the
+         * group for its bounds. If stored on the children, we would have 100
+         * times the same structure.
+         */
+        _updateBoundsCache: function(parent, item) {
+            if (parent) {
                 // Set-up the parent's boundsCache structure if it does not
                 // exist yet and add the item to it.
                 var id = item._id,
@@ -1463,6 +1558,7 @@ new function() { // Injection scope for various item event handlers
      * Clones the item within the same project and places the copy above the
      * item.
      *
+<<<<<<< HEAD
      * @option [insert=true] specifies whether the copy should be
      *     inserted into the scene graph. When set to `true`, it is inserted
      *     above the original
@@ -1471,6 +1567,11 @@ new function() { // Injection scope for various item event handlers
      *
      * @param {Object} [options={ insert: true, deep: true }]
      *
+=======
+     * @param {Boolean} [insert=true] specifies whether the copy should be
+     * inserted into the DOM. When set to {@code true}, it is inserted above the
+     * original
+>>>>>>> skali
      * @return {Item} the newly cloned item
      *
      * @example {@paperscript}
@@ -1528,6 +1629,7 @@ new function() { // Injection scope for various item event handlers
     },
 
     /**
+<<<<<<< HEAD
      * Copies the content of the specified item over to this item.
      *
      * @param {Item} source the item to copy the content from
@@ -1558,12 +1660,37 @@ new function() { // Injection scope for various item event handlers
         // prototype).
         var keys = ['_locked', '_visible', '_blendMode', '_opacity',
                 '_clipMask', '_guide'];
+=======
+     * Clones the item within the same project and places the copy above the
+     * item.
+     *
+     * @param {Boolean} [insert=true] specifies whether the copy should be
+     * inserted into the DOM. When set to {@code true}, it is inserted above the
+     * original
+     * @return {Item} the newly cloned item
+     */
+    _clone: function(copy, insert, includeMatrix) {
+        var keys = ['_locked', '_visible', '_blendMode', '_opacity',
+                '_clipMask', '_guide'],
+            children = this._children;
+        // Copy over style
+        copy.setStyle(this._style);
+        // Clone all children and add them to the copy. tell #addChild we're
+        // cloning, as needed by CompoundPath#insertChild().
+        for (var i = 0, l = children && children.length; i < l; i++) {
+            copy.addChild(children[i].clone(false), true);
+        }
+        // Only copy over these fields if they are actually defined in 'this',
+        // meaning the default value has been overwritten (default is on
+        // prototype).
+>>>>>>> skali
         for (var i = 0, l = keys.length; i < l; i++) {
             var key = keys[i];
             if (source.hasOwnProperty(key))
                 this[key] = source[key];
         }
         // Use Matrix#initialize to easily copy over values.
+<<<<<<< HEAD
         if (!excludeMatrix)
             this._matrix.initialize(source._matrix);
         // We can't just set _applyMatrix as many item types won't allow it,
@@ -1582,6 +1709,42 @@ new function() { // Injection scope for various item event handlers
         this._data = data ? Base.clone(data) : null;
         if (name)
             this.setName(name);
+=======
+        if (includeMatrix !== false)
+            copy._matrix.initialize(this._matrix);
+        // In case of Path#toShape(), we can't just set _applyMatrix as
+        // Shape won't allow it. Using the setter instead takes care of it.
+        // NOTE: This will also bake in the matrix that we just initialized,
+        // in case #applyMatrix is true.
+        copy.setApplyMatrix(this._applyMatrix);
+        // Copy over the selection state, use setSelected so the item
+        // is also added to Project#selectedItems if it is selected.
+        copy.setSelected(this._selected);
+        // Copy over _data as well.
+        copy._data = this._data ? Base.clone(this._data) : null;
+        // Insert is true by default.
+        if (insert || insert === undefined)
+            copy.insertAbove(this);
+        // Clone the name too, but make sure we're not overriding the original
+        // in the same parent, by passing true for the unique parameter.
+        if (this._name)
+            copy.setName(this._name, true);
+        return copy;
+    },
+
+    /**
+     * When passed a project, copies the item to the project,
+     * or duplicates it within the same project. When passed an item,
+     * copies the item into the specified item.
+     *
+     * @param {Project|Layer|Group|CompoundPath} item the item or project to
+     * copy the item to
+     * @return {Item} the new copy of the item
+     */
+    copyTo: function(itemOrProject) {
+        // Pass false fo insert, since we're inserting at a specific location.
+        return itemOrProject.addChild(this.clone(false));
+>>>>>>> skali
     },
 
     /**
@@ -1672,7 +1835,11 @@ new function() { // Injection scope for various item event handlers
      *     }
      * }
      *
+<<<<<<< HEAD
      * @param {Point} point the point to check for
+=======
+     * @param {Point} point The point to check for
+>>>>>>> skali
      */
     contains: function(/* point */) {
         // See CompoundPath#_contains() for the reason for !!
@@ -1793,6 +1960,7 @@ new function() { // Injection scope for hit-test functions shared with project
      * The options object allows you to control the specifics of the hit-
      * test and may contain a combination of the following values:
      *
+<<<<<<< HEAD
      * @name Item#hitTest
      * @function
      *
@@ -1821,6 +1989,30 @@ new function() { // Injection scope for hit-test functions shared with project
      *     the bounding rectangle of items ({@link Item#bounds})
      * @option options.guides {Boolean} hit-test items that have {@link
      *     Item#guide} set to `true`
+=======
+     * @option [options.tolerance={@link PaperScope#settings}.hitTolerance]
+     * {Number} the tolerance of the hit-test in points
+     * @option options.class {Function} only hit-test again a certain item class
+     * and its sub-classes: {@code Group, Layer, Path, CompoundPath,
+     * Shape, Raster, PlacedSymbol, PointText}, etc
+     * @option options.fill {Boolean} hit-test the fill of items
+     * @option options.stroke {Boolean} hit-test the stroke of path items,
+     * taking into account the setting of stroke color and width
+     * @option options.segments {Boolean} hit-test for {@link Segment#point} of
+     * {@link Path} items
+     * @option options.curves {Boolean} hit-test the curves of path items,
+     * without taking the stroke color or width into account
+     * @option options.handles {Boolean} hit-test for the handles
+     * ({@link Segment#handleIn} / {@link Segment#handleOut}) of path segments
+     * @option options.ends {Boolean} only hit-test for the first or last
+     * segment points of open path items
+     * @option options.bounds {Boolean} hit-test the corners and side-centers of
+     * the bounding rectangle of items ({@link Item#bounds})
+     * @option options.center {Boolean} hit-test the {@link Rectangle#center} of
+     * the bounding rectangle of items ({@link Item#bounds})
+     * @option options.guides {Boolean} hit-test items that have
+     * {@link Item#guide} set to {@code true}
+>>>>>>> skali
      * @option options.selected {Boolean} only hit selected items
      *
      * @param {Point} point the point where the hit-test should be performed
@@ -1964,9 +2156,15 @@ new function() { // Injection scope for hit-test functions shared with project
      * @name Item#matches
      * @function
      *
+<<<<<<< HEAD
      * @param {Object|Function} options the criteria to match against
      * @return {Boolean} {@true if the item matches all the criteria}
      * @see #getItems(options)
+=======
+     * @param {Object} match the criteria to match against
+     * @return {Boolean} {@true if the item matches all the criteria}
+     * @see #getItems(match)
+>>>>>>> skali
      */
     /**
      * Checks whether the item matches the given criteria. Extended matching is
@@ -1986,7 +2184,11 @@ new function() { // Injection scope for hit-test functions shared with project
      * @param {Object} compare the value, function or regular expression to
      * compare against
      * @return {Boolean} {@true if the item matches the state}
+<<<<<<< HEAD
      * @see #getItems(options)
+=======
+     * @see #getItems(match)
+>>>>>>> skali
      */
     matches: function(name, compare) {
         // matchObject() is used to match against objects in a nested manner.
@@ -2063,6 +2265,7 @@ new function() { // Injection scope for hit-test functions shared with project
      * See {@link Project#getItems(options)} for a selection of illustrated
      * examples.
      *
+<<<<<<< HEAD
      * @option [options.recursive=true] {Boolean} whether to loop recursively
      *     through all children, or stop at the current level
      * @option options.match {Function} a match function to be called for each
@@ -2082,6 +2285,19 @@ new function() { // Injection scope for hit-test functions shared with project
      */
     getItems: function(options) {
         return Item._getItems(this, options, this._matrix);
+=======
+     * @option match.inside {Rectangle} the rectangle in which the items need to
+     * be fully contained
+     * @option match.overlapping {Rectangle} the rectangle with which the items
+     * need to at least partly overlap
+     *
+     * @param {Object} match the criteria to match against
+     * @return {Item[]} the list of matching descendant items
+     * @see #matches(match)
+     */
+    getItems: function(match) {
+        return Item._getItems(this._children, match, this._matrix);
+>>>>>>> skali
     },
 
     /**
@@ -2095,8 +2311,13 @@ new function() { // Injection scope for hit-test functions shared with project
      * See {@link Project#getItems(match)} for a selection of illustrated
      * examples.
      *
+<<<<<<< HEAD
      * @param {Object|Function} match the criteria to match against
      * @return {Item} the first descendant item matching the given criteria
+=======
+     * @param {Object} match the criteria to match against
+     * @return {Item} the first descendant item  matching the given criteria
+>>>>>>> skali
      * @see #getItems(match)
      */
     getItem: function(options) {
@@ -2184,10 +2405,17 @@ new function() { // Injection scope for hit-test functions shared with project
      * @name Item#exportJSON
      * @function
      *
+<<<<<<< HEAD
      * @option [options.asString=true] {Boolean} whether the JSON is returned as
      *     a `Object` or a `String`
      * @option [options.precision=5] {Number} the amount of fractional digits in
      *     numbers used in JSON data
+=======
+     * @option [options.asString=true] {Boolean} whether the JSON is returned as a
+     * {@code Object} or a {@code String}
+     * @option [options.precision=5] {Number} the amount of fractional digits in
+     * numbers used in JSON data
+>>>>>>> skali
      *
      * @param {Object} [options] the serialization options
      * @return {String} the exported JSON data
@@ -2217,6 +2445,7 @@ new function() { // Injection scope for hit-test functions shared with project
      * @function
      *
      * @option [options.asString=false] {Boolean} whether a SVG node or a
+<<<<<<< HEAD
      *     `String` is to be returned
      * @option [options.precision=5] {Number} the amount of fractional digits in
      *     numbers used in SVG data
@@ -2226,6 +2455,14 @@ new function() { // Injection scope for hit-test functions shared with project
      * @option [options.embedImages=true] {Boolean} whether raster images should
      *     be embedded as base64 data inlined in the xlink:href attribute, or
      *     kept as a link to their external URL.
+=======
+     * {@code String} is to be returned
+     * @option [options.precision=5] {Number} the amount of fractional digits in
+     * numbers used in SVG data
+     * @option [options.matchShapes=false] {Boolean} whether path items should
+     * tried to be converted to shape items, if their geometries can be made to
+     * match
+>>>>>>> skali
      *
      * @param {Object} [options] the export options
      * @return {SVGElement} the item converted to an SVG node
@@ -2240,6 +2477,7 @@ new function() { // Injection scope for hit-test functions shared with project
      * @function
      *
      * @option [options.expandShapes=false] {Boolean} whether imported shape
+<<<<<<< HEAD
      *     items should be expanded to path items
      * @option options.onLoad {Function} the callback function to call once the
      *     SVG content is loaded from the given URL receiving two arguments: the
@@ -2276,6 +2514,37 @@ new function() { // Injection scope for hit-test functions shared with project
      *     required when loading from external files.
      * @return {Item} the newly created Paper.js item containing the converted
      *     SVG content
+=======
+     * items should be expanded to path items
+     * @option [options.onLoad] {Function} the callback function to call once
+     * the SVG content is loaded from the given URL. Only required when loading
+     * from external files.
+     * @option [options.applyMatrix={@link PaperScope#settings}.applyMatrix]
+     * {Boolean} whether imported items should have their transformation
+     * matrices applied to their contents or not
+     *
+     * @param {SVGElement|String} svg the SVG content to import, either as a SVG
+     * DOM node, a string containing SVG content, or a string describing the URL
+     * of the SVG file to fetch.
+     * @param {Object} [options] the import options
+     * @return {Item} the newly created Paper.js item containing the converted
+     * SVG content
+     */
+    /**
+     * Imports the provided external SVG file, converts it into Paper.js items
+     * and adds them to the this item's children list.
+     * Note that the item is not cleared first. You can call
+     * {@link Item#removeChildren()} to do so.
+     *
+     * @name Item#importSVG
+     * @function
+     *
+     * @param {SVGElement|String} svg the URL of the SVG file to fetch.
+     * @param {Function} onLoad the callback function to call once the SVG
+     * content is loaded from the given URL.
+     * @return {Item} the newly created Paper.js item containing the converted
+     * SVG content
+>>>>>>> skali
      */
 
     /**
@@ -2286,7 +2555,12 @@ new function() { // Injection scope for hit-test functions shared with project
      * paths and layers.
      *
      * @param {Item} item the item to be added as a child
+<<<<<<< HEAD
      * @return {Item} the added item, or `null` if adding was not possible
+=======
+     * @return {Item} the added item, or {@code null} if adding was not
+     * possible
+>>>>>>> skali
      */
     addChild: function(item, _preserve) {
         return this.insertChild(undefined, item, _preserve);
@@ -2299,7 +2573,12 @@ new function() { // Injection scope for hit-test functions shared with project
      *
      * @param {Number} index the index at which to insert the item
      * @param {Item} item the item to be inserted as a child
+<<<<<<< HEAD
      * @return {Item} the inserted item, or `null` if inserting was not possible
+=======
+     * @return {Item} the inserted item, or {@code null} if inserting was not
+     * possible
+>>>>>>> skali
      */
     insertChild: function(index, item, _preserve) {
         var res = item ? this.insertChildren(index, [item], _preserve) : null;
@@ -2311,8 +2590,14 @@ new function() { // Injection scope for hit-test functions shared with project
      * children list. You can use this function for groups, compound paths and
      * layers.
      *
+<<<<<<< HEAD
      * @param {Item[]} items the items to be added as children
      * @return {Item[]} the added items, or `null` if adding was not possible
+=======
+     * @param {Item[]} items The items to be added as children
+     * @return {Item[]} the added items, or {@code null} if adding was not
+     * possible
+>>>>>>> skali
      */
     addChildren: function(items, _preserve) {
         return this.insertChildren(this._children.length, items, _preserve);
@@ -2324,9 +2609,15 @@ new function() { // Injection scope for hit-test functions shared with project
      * groups, compound paths and layers.
      *
      * @param {Number} index
+<<<<<<< HEAD
      * @param {Item[]} items the items to be appended as children
      * @return {Item[]} the inserted items, or `null` if inserted was not
      *     possible
+=======
+     * @param {Item[]} items The items to be appended as children
+     * @return {Item[]} the inserted items, or {@code null} if inserted was not
+     * possible
+>>>>>>> skali
      */
     insertChildren: function(index, items, _preserve, _proto) {
         // CompoundPath#insertChildren() requires _preserve and _type:
@@ -2410,7 +2701,12 @@ new function() { // Injection scope for hit-test functions shared with project
      * Inserts this item above the specified item.
      *
      * @param {Item} item the item above which it should be inserted
+<<<<<<< HEAD
      * @return {Item} the inserted item, or `null` if inserting was not possible
+=======
+     * @return {Item} the inserted item, or {@code null} if inserting was not
+     * possible
+>>>>>>> skali
      */
     insertAbove: function(item, _preserve) {
         return this._insertAt(item, 1, _preserve);
@@ -2420,7 +2716,12 @@ new function() { // Injection scope for hit-test functions shared with project
      * Inserts this item below the specified item.
      *
      * @param {Item} item the item below which it should be inserted
+<<<<<<< HEAD
      * @return {Item} the inserted item, or `null` if inserting was not possible
+=======
+     * @return {Item} the inserted item, or {@code null} if inserting was not
+     * possible
+>>>>>>> skali
      */
     insertBelow: function(item, _preserve) {
         return this._insertAt(item, 0, _preserve);
@@ -3551,11 +3852,19 @@ new function() { // Injection scope for hit-test functions shared with project
      * the frame event:
      *
      * @option event.count {Number} the number of times the frame event was
+<<<<<<< HEAD
      *     fired
      * @option event.time {Number} the total amount of time passed since the
      *     first frame event in seconds
      * @option event.delta {Number} the time passed in seconds since the last
      *     frame event
+=======
+     * fired
+     * @option event.time {Number} the total amount of time passed since the
+     * first frame event in seconds
+     * @option event.delta {Number} the time passed in seconds since the last
+     * frame event
+>>>>>>> skali
      *
      * @name Item#onFrame
      * @property

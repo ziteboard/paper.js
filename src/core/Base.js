@@ -47,6 +47,7 @@ Base.inject(/** @lends Base# */{
     },
 
     /**
+<<<<<<< HEAD
      * Imports (deserializes) the stored JSON data into the object, if the
      * classes match. If they do not match, a newly created object is returned
      * instead.
@@ -64,6 +65,14 @@ Base.inject(/** @lends Base# */{
      *     a `Object` or a `String`
      * @option [options.precision=5] {Number} the amount of fractional digits in
      *     numbers used in JSON data
+=======
+     * Exports (serializes) this object to a JSON data object or string.
+     *
+     * @option [options.asString=true] {Boolean} whether the JSON is returned as
+     * a {@code Object} or a {@code String}
+     * @option [options.precision=5] {Number} the amount of fractional digits in
+     * numbers used in JSON data
+>>>>>>> skali
      *
      * @param {Object} [options] the serialization options
      * @return {String} the exported JSON data
@@ -165,7 +174,11 @@ Base.inject(/** @lends Base# */{
          * Size, Rectangle) and also higher classes such as Color and Segment.
          *
          * @param {Array} list the list to read from, either an arguments object
+<<<<<<< HEAD
          *     or a normal array
+=======
+         * or a normal array
+>>>>>>> skali
          * @param {Number} start the index at which to start reading in the list
          * @param {Number} length the amount of elements that can be read
          * @param {Object} options `options.readNull` controls whether null is
@@ -230,7 +243,11 @@ Base.inject(/** @lends Base# */{
          * separately.
          *
          * @param {Array} list the list to read from, either an arguments object
+<<<<<<< HEAD
          *     or a normal array
+=======
+         * or a normal array
+>>>>>>> skali
          * @param {Number} start the index at which to start reading in the list
          * @param {Object} options `options.readNull` controls whether null is
          *     returned or converted. `options.clone` controls whether passed
@@ -282,9 +299,15 @@ Base.inject(/** @lends Base# */{
 
         /**
          * @return the named value if the list provides an arguments object,
+<<<<<<< HEAD
          *     `null` if the named value is `null` or `undefined`, and
          *     `undefined` if there is no arguments object If no name is
          *     provided, it returns the whole arguments object
+=======
+         * {@code null} if the named value is {@code null} or {@code undefined},
+         * and {@code undefined} if there is no arguments object
+         * If no name is provided, it returns the whole arguments object
+>>>>>>> skali
          */
         getNamed: function(list, name) {
             var arg = list[0];
@@ -425,7 +448,11 @@ Base.inject(/** @lends Base# */{
          * The passed json data is recoursively traversed and converted, leaves
          * first
          */
+<<<<<<< HEAD
         deserialize: function(json, create, _data, _setDictionary, _isRoot) {
+=======
+        deserialize: function(json, create, _data, _isDictionary) {
+>>>>>>> skali
             var res = json,
                 isFirst = !_data,
                 hasDictionary = isFirst && json && json.length
@@ -444,18 +471,34 @@ Base.inject(/** @lends Base# */{
                     isDictionary = type === 'dictionary';
                 // First see if this is perhaps a dictionary reference, and
                 // if so return its definition instead.
+<<<<<<< HEAD
                 if (json.length == 1 && /^#/.test(type)) {
                     return _data.dictionary[type];
                 }
+=======
+                if (json.length == 1 && /^#/.test(type))
+                    return _data.dictionary[type];
+>>>>>>> skali
                 type = Base.exports[type];
                 res = [];
+                // We need to set the dictionary object before further
+                // deserialization, because serialized symbols may contain
+                // references to serialized gradients
+                if (_isDictionary)
+                    _data.dictionary = res;
                 // Skip first type entry for arguments
+<<<<<<< HEAD
                 // Pass true for _isRoot in children if we have a dictionary,
                 // in which case we need to shift the root level one down.
                 for (var i = type ? 1 : 0, l = json.length; i < l; i++) {
                     res.push(Base.deserialize(json[i], create, _data,
                             isDictionary, hasDictionary));
                 }
+=======
+                for (var i = type ? 1 : 0, l = json.length; i < l; i++)
+                    res.push(Base.deserialize(json[i], create, _data,
+                            isDictionary));
+>>>>>>> skali
                 if (type) {
                     // Create serialized type and pass collected arguments to
                     // constructor().
@@ -472,10 +515,15 @@ Base.inject(/** @lends Base# */{
                 }
             } else if (Base.isPlainObject(json)) {
                 res = {};
+<<<<<<< HEAD
                 // We need to set the dictionary object before further
                 // deserialization, because serialized symbols may contain
                 // references to serialized gradients
                 if (_setDictionary)
+=======
+                // See above why we have to set this before Base.deserialize()
+                if (_isDictionary)
+>>>>>>> skali
                     _data.dictionary = res;
                 for (var key in json)
                     res[key] = Base.deserialize(json[key], create, _data);

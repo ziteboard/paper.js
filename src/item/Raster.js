@@ -410,11 +410,63 @@ var Raster = Item.extend(/** @lends Raster# */{
         return image && image.crossOrigin || this._crossOrigin || '';
     },
 
+<<<<<<< HEAD
     setCrossOrigin: function(crossOrigin) {
         this._crossOrigin = crossOrigin;
         var image = this._image;
         if (image)
             image.crossOrigin = crossOrigin;
+=======
+        // IE has naturalWidth / Height defined, but width / height set to 0
+        // when the image is invisible in the document.
+        if (image.naturalWidth && image.naturalHeight) {
+            // Emit load event with a delay, so behavior is the same as when
+            // it's actually loaded and we give the code time to install event.
+            setTimeout(loaded, 0);
+        } else {
+            // Trigger the load event on the image once it's loaded
+            DomEvent.add(image, { load: loaded });
+            // A new image created above? Set the source now.
+            if (!image.src)
+                image.src = src;
+        }
+        this.setImage(image);
+/*#*/ } else if (__options.environment == 'node') {
+        image = new Image();
+        // If we're running on the server and it's a string,
+        // check if it is a data URL
+        if (/^data:/.test(src)) {
+            // Preserve the data in this._data since canvas-node eats it.
+            // TODO: Fix canvas-node instead
+            image.src = this._data = src;
+            // Emit load event with a delay, so behavior is the same as when
+            // it's actually loaded and we give the code time to install event.
+            setTimeout(loaded, 0);
+        } else if (/^https?:\/\//.test(src)) {
+            // Load it from remote location:
+            require('request').get({
+                url: src,
+                encoding: null // So the response data is a Buffer
+            }, function (err, response, data) {
+                if (err)
+                    throw err;
+                if (response.statusCode == 200) {
+                    image.src = this._data = data;
+                    loaded();
+                }
+            });
+        } else {
+            // Load it from disk:
+            require('fs').readFile(src, function (err, data) {
+                if (err)
+                    throw err;
+                image.src = this._data = data;
+                loaded();
+            });
+        }
+        this.setImage(image);
+/*#*/ } // __options.environment == 'node'
+>>>>>>> skali
     },
 
     // DOCS: document Raster#getElement

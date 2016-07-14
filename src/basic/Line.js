@@ -80,8 +80,13 @@ var Line = Base.extend(/** @lends Line# */{
     /**
      * @param {Line} line
      * @param {Boolean} [isInfinite=false]
+<<<<<<< HEAD
      * @return {Point} the intersection point of the lines, `undefined` if the
      *     two lines are collinear, or `null` if they don't intersect.
+=======
+     * @return {Point} the intersection point of the lines, {@code undefined}
+     * if the two lines are collinear, or {@code null} if they don't intersect.
+>>>>>>> skali
      */
     intersect: function(line, isInfinite) {
         return Line.intersect(

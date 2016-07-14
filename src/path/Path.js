@@ -143,9 +143,13 @@ var Path = PathItem.extend(/** @lends Path# */{
         _changed.base.call(this, flags);
         if (flags & /*#=*/ChangeFlag.GEOMETRY) {
             // Clockwise state becomes undefined as soon as geometry changes.
+<<<<<<< HEAD
             // Also clear cached mono curves used for winding calculations.
             this._length = this._area = this._clockwise = this._monoCurves =
                     undefined;
+=======
+            this._length = this._clockwise = undefined;
+>>>>>>> skali
             if (flags & /*#=*/ChangeFlag.SEGMENTS) {
                 this._version++; // See CurveLocation
             } else if (this._curves) {
@@ -1215,6 +1219,7 @@ var Path = PathItem.extend(/** @lends Path# */{
     },
 
     /**
+<<<<<<< HEAD
      * Reduces the path by removing curves that have a length of 0,
      * and unnecessary segments between two collinear flat curves.
      */
@@ -1446,14 +1451,23 @@ var Path = PathItem.extend(/** @lends Path# */{
     // TODO: reduceSegments([flatness])
 
     /**
+=======
+>>>>>>> skali
      * Attempts to create a new shape item with same geometry as this path item,
      * and inherits all settings from it, similar to {@link Item#clone()}.
      *
      * @param {Boolean} [insert=true] specifies whether the new shape should be
+<<<<<<< HEAD
      * inserted into the scene graph. When set to `true`, it is inserted above
      * the path item
      * @return {Shape} the newly created shape item with the same geometry as
      * this path item if it can be matched, `null` otherwise
+=======
+     * inserted into the DOM. When set to {@code true}, it is inserted above the
+     * path item
+     * @return {Shape} the newly created shape item with the same geometry as
+     * this path item if it can be matched, {@code null} otherwise
+>>>>>>> skali
      * @see Shape#toPath(insert)
      */
     toShape: function(insert) {
@@ -1467,6 +1481,7 @@ var Path = PathItem.extend(/** @lends Path# */{
             topCenter;
 
         function isCollinear(i, j) {
+<<<<<<< HEAD
             var seg1 = segments[i],
                 seg2 = seg1.getNext(),
                 seg3 = segments[j],
@@ -1475,6 +1490,9 @@ var Path = PathItem.extend(/** @lends Path# */{
                     && seg3._handleOut.isZero() && seg4._handleIn.isZero()
                     && seg2._point.subtract(seg1._point).isCollinear(
                         seg4._point.subtract(seg3._point));
+=======
+            return segments[i].isCollinear(segments[j]);
+>>>>>>> skali
         }
 
         function isOrthogonal(i) {
@@ -1517,7 +1535,11 @@ var Path = PathItem.extend(/** @lends Path# */{
         // See if actually have any curves in the path. Differentiate
         // between straight objects (line, polyline, rect, and polygon) and
         // objects with curves(circle, ellipse, roundedRectangle).
+<<<<<<< HEAD
         if (!this.hasHandles() && segments.length === 4
+=======
+        if (this.isPolygon() && segments.length === 4
+>>>>>>> skali
                 && isCollinear(0, 2) && isCollinear(1, 3) && isOrthogonal(1)) {
             type = Shape.Rectangle;
             size = new Size(getDistance(0, 3), getDistance(0, 1));
@@ -1548,11 +1570,12 @@ var Path = PathItem.extend(/** @lends Path# */{
 
         if (type) {
             var center = this.getPosition(true),
-                shape = new type({
+                shape = this._clone(new type({
                     center: center,
                     size: size,
                     radius: radius,
                     insert: false
+<<<<<<< HEAD
                 });
             // Pass `true` to exclude the matrix, so we can prepend after
             shape.copyAttributes(this, true);
@@ -1561,6 +1584,11 @@ var Path = PathItem.extend(/** @lends Path# */{
             shape.rotate(topCenter.subtract(center).getAngle() + 90);
             if (insert === undefined || insert)
                 shape.insertAbove(this);
+=======
+                }), insert, false);
+            // Determine and apply the shape's angle of rotation.
+            shape.rotate(topCenter.subtract(center).getAngle() + 90);
+>>>>>>> skali
             return shape;
         }
         return null;
@@ -1757,7 +1785,11 @@ var Path = PathItem.extend(/** @lends Path# */{
      * {@grouptitle Positions on Paths and Curves}
      *
      * Returns the curve location of the specified point if it lies on the
+<<<<<<< HEAD
      * path, `null` otherwise.
+=======
+     * path, {@code null} otherwise.
+>>>>>>> skali
      *
      * @param {Point} point the point on the path
      * @return {CurveLocation} the curve location of the specified point
@@ -1775,7 +1807,11 @@ var Path = PathItem.extend(/** @lends Path# */{
 
     /**
      * Returns the length of the path from its beginning up to up to the
+<<<<<<< HEAD
      * specified point if it lies on the path, `null` otherwise.
+=======
+     * specified point if it lies on the path, {@code null} otherwise.
+>>>>>>> skali
      *
      * @param {Point} point the point on the path
      * @return {Number} the length of the path up to the specified point
@@ -1788,8 +1824,14 @@ var Path = PathItem.extend(/** @lends Path# */{
     /**
      * Returns the curve location of the specified offset on the path.
      *
+<<<<<<< HEAD
      * @param {Number} offset the offset on the path, where `0` is at
      * the beginning of the path and {@link Path#length} at the end
+=======
+     * @param {Number} offset the offset on the path, where {@code 0} is at
+     * the beginning of the path and {@link Path#length} at the end
+     * @param {Boolean} [isParameter=false]
+>>>>>>> skali
      * @return {CurveLocation} the curve location at the specified offset
      */
     getLocationAt: function(offset) {
@@ -1816,8 +1858,14 @@ var Path = PathItem.extend(/** @lends Path# */{
      *
      * @name Path#getPointAt
      * @function
+<<<<<<< HEAD
      * @param {Number} offset the offset on the path, where `0` is at
      * the beginning of the path and {@link Path#length} at the end
+=======
+     * @param {Number} offset the offset on the path, where {@code 0} is at
+     * the beginning of the path and {@link Path#length} at the end
+     * @param {Boolean} [isParameter=false]
+>>>>>>> skali
      * @return {Point} the point at the given offset
      *
      * @example {@paperscript height=150}
@@ -1878,9 +1926,16 @@ var Path = PathItem.extend(/** @lends Path# */{
      *
      * @name Path#getTangentAt
      * @function
+<<<<<<< HEAD
      * @param {Number} offset the offset on the path, where `0` is at
      * the beginning of the path and {@link Path#length} at the end
      * @return {Point} the normalized tangent vector at the given offset
+=======
+     * @param {Number} offset the offset on the path, where {@code 0} is at
+     * the beginning of the path and {@link Path#length} at the end
+     * @param {Boolean} [isParameter=false]
+     * @return {Point} the tangent vector at the given offset
+>>>>>>> skali
      *
      * @example {@paperscript height=150}
      * // Working with the tangent vector at a given offset:
@@ -1944,8 +1999,14 @@ var Path = PathItem.extend(/** @lends Path# */{
      *
      * @name Path#getNormalAt
      * @function
+<<<<<<< HEAD
      * @param {Number} offset the offset on the path, where `0` is at
      * the beginning of the path and {@link Path#length} at the end
+=======
+     * @param {Number} offset the offset on the path, where {@code 0} is at
+     * the beginning of the path and {@link Path#length} at the end
+     * @param {Boolean} [isParameter=false]
+>>>>>>> skali
      * @return {Point} the normal vector at the given offset
      *
      * @example {@paperscript height=150}
@@ -2010,10 +2071,18 @@ var Path = PathItem.extend(/** @lends Path# */{
      *
      * @name Path#getWeightedTangentAt
      * @function
+<<<<<<< HEAD
      * @param {Number} offset the offset on the path, where `0` is at
      * the beginning of the path and {@link Path#length} at the end
      * @return {Point} the weighted tangent vector at the given offset
      */
+=======
+     * @param {Number} offset the offset on the path, where {@code 0} is at
+     * the beginning of the path and {@link Path#length} at the end
+     * @param {Boolean} [isParameter=false]
+     * @return {Number} the normal vector at the given offset
+     *
+>>>>>>> skali
 
     /**
      * Calculates the weighted normal vector of the path at the given offset.
@@ -2231,8 +2300,138 @@ new function() { // Scope for drawing
             drawHandles(ctx, this._segments, matrix, paper.settings.handleSize);
         }
     };
+<<<<<<< HEAD
 },
 new function() { // PostScript-style drawing commands
+=======
+}, new function() { // Path Smoothing
+
+    /**
+     * Solves a tri-diagonal system for one of coordinates (x or y) of first
+     * bezier control points.
+     *
+     * @param rhs right hand side vector
+     * @return Solution vector
+     */
+    function getFirstControlPoints(rhs) {
+        var n = rhs.length,
+            x = [], // Solution vector.
+            tmp = [], // Temporary workspace.
+            b = 2;
+        x[0] = rhs[0] / b;
+        // Decomposition and forward substitution.
+        for (var i = 1; i < n; i++) {
+            tmp[i] = 1 / b;
+            b = (i < n - 1 ? 4 : 2) - tmp[i];
+            x[i] = (rhs[i] - x[i - 1]) / b;
+        }
+        // Back-substitution.
+        for (var i = 1; i < n; i++) {
+            x[n - i - 1] -= tmp[n - i] * x[n - i];
+        }
+        return x;
+    }
+
+    return {
+        // Note: Documentation for smooth() is in PathItem
+        smooth: function() {
+            // This code is based on the work by Oleg V. Polikarpotchkin,
+            // http://ov-p.spaces.live.com/blog/cns!39D56F0C7A08D703!147.entry
+            // It was extended to support closed paths by averaging overlapping
+            // beginnings and ends. The result of this approach is very close to
+            // Polikarpotchkin's closed curve solution, but reuses the same
+            // algorithm as for open paths, and is probably executing faster as
+            // well, so it is preferred.
+            var segments = this._segments,
+                size = segments.length,
+                closed = this._closed,
+                n = size,
+                // Add overlapping ends for averaging handles in closed paths
+                overlap = 0;
+            if (size <= 2)
+                return;
+            if (closed) {
+                // Overlap up to 4 points since averaging beziers affect the 4
+                // neighboring points
+                overlap = Math.min(size, 4);
+                n += Math.min(size, overlap) * 2;
+            }
+            var knots = [];
+            for (var i = 0; i < size; i++)
+                knots[i + overlap] = segments[i]._point;
+            if (closed) {
+                // If we're averaging, add the 4 last points again at the
+                // beginning, and the 4 first ones at the end.
+                for (var i = 0; i < overlap; i++) {
+                    knots[i] = segments[i + size - overlap]._point;
+                    knots[i + size + overlap] = segments[i]._point;
+                }
+            } else {
+                n--;
+            }
+            // Calculate first Bezier control points
+            // Right hand side vector
+            var rhs = [];
+
+            // Set right hand side X values
+            for (var i = 1; i < n - 1; i++)
+                rhs[i] = 4 * knots[i]._x + 2 * knots[i + 1]._x;
+            rhs[0] = knots[0]._x + 2 * knots[1]._x;
+            rhs[n - 1] = 3 * knots[n - 1]._x;
+            // Get first control points X-values
+            var x = getFirstControlPoints(rhs);
+
+            // Set right hand side Y values
+            for (var i = 1; i < n - 1; i++)
+                rhs[i] = 4 * knots[i]._y + 2 * knots[i + 1]._y;
+            rhs[0] = knots[0]._y + 2 * knots[1]._y;
+            rhs[n - 1] = 3 * knots[n - 1]._y;
+            // Get first control points Y-values
+            var y = getFirstControlPoints(rhs);
+
+            if (closed) {
+                // Do the actual averaging simply by linearly fading between the
+                // overlapping values.
+                for (var i = 0, j = size; i < overlap; i++, j++) {
+                    var f1 = i / overlap,
+                        f2 = 1 - f1,
+                        ie = i + overlap,
+                        je = j + overlap;
+                    // Beginning
+                    x[j] = x[i] * f1 + x[j] * f2;
+                    y[j] = y[i] * f1 + y[j] * f2;
+                    // End
+                    x[je] = x[ie] * f2 + x[je] * f1;
+                    y[je] = y[ie] * f2 + y[je] * f1;
+                }
+                n--;
+            }
+            var handleIn = null;
+            // Now set the calculated handles
+            for (var i = overlap; i <= n - overlap; i++) {
+                var segment = segments[i - overlap];
+                if (handleIn)
+                    segment.setHandleIn(handleIn.subtract(segment._point));
+                if (i < n) {
+                    segment.setHandleOut(
+                            new Point(x[i], y[i]).subtract(segment._point));
+                    handleIn = i < n - 1
+                            ? new Point(
+                                2 * knots[i + 1]._x - x[i + 1],
+                                2 * knots[i + 1]._y - y[i + 1])
+                            : new Point(
+                                (knots[n]._x + x[n - 1]) / 2,
+                                (knots[n]._y + y[n - 1]) / 2);
+                }
+            }
+            if (closed && handleIn) {
+                var segment = this._segments[0];
+                segment.setHandleIn(handleIn.subtract(segment._point));
+            }
+        }
+    };
+}, new function() { // PostScript-style drawing commands
+>>>>>>> skali
     /**
      * Helper method that returns the current segment and checks if a moveTo()
      * command is required first.
