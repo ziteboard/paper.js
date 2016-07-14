@@ -2,7 +2,7 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * Copyright (c) 2011 - 2016, Juerg Lehni & Jonathan Puckey
  * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
@@ -48,9 +48,9 @@ var Line = Base.extend(/** @lends Line# */{
     },
 
     /**
-     * The starting point of the line
+     * The starting point of the line.
      *
-     * @name Line#point
+     * @bean
      * @type Point
      */
     getPoint: function() {
@@ -58,9 +58,9 @@ var Line = Base.extend(/** @lends Line# */{
     },
 
     /**
-     * The vector of the line
+     * The direction of the line as a vector.
      *
-     * @name Line#vector
+     * @bean
      * @type Point
      */
     getVector: function() {
@@ -68,9 +68,9 @@ var Line = Base.extend(/** @lends Line# */{
     },
 
     /**
-     * The length of the line
+     * The length of the line.
      *
-     * @name Line#length
+     * @bean
      * @type Number
      */
     getLength: function() {
@@ -80,8 +80,8 @@ var Line = Base.extend(/** @lends Line# */{
     /**
      * @param {Line} line
      * @param {Boolean} [isInfinite=false]
-     * @return {Point} the intersection point of the lines, {@code undefined}
-     * if the two lines are colinear, or {@code null} if they don't intersect.
+     * @return {Point} the intersection point of the lines, `undefined` if the
+     *     two lines are collinear, or `null` if they don't intersect.
      */
     intersect: function(line, isInfinite) {
         return Line.intersect(
@@ -93,12 +93,13 @@ var Line = Base.extend(/** @lends Line# */{
     // DOCS: document Line#getSide(point)
     /**
      * @param {Point} point
+     * @param {Boolean} [isInfinite=false]
      * @return {Number}
      */
-    getSide: function(point) {
+    getSide: function(point, isInfinite) {
         return Line.getSide(
                 this._px, this._py, this._vx, this._vy,
-                point.x, point.y, true);
+                point.x, point.y, true, isInfinite);
     },
 
     // DOCS: document Line#getDistance(point)
@@ -112,50 +113,71 @@ var Line = Base.extend(/** @lends Line# */{
                 point.x, point.y, true));
     },
 
+    isCollinear: function(line) {
+        return Point.isCollinear(this._vx, this._vy, line._vx, line._vy);
+    },
+
+    isOrthogonal: function(line) {
+        return Point.isOrthogonal(this._vx, this._vy, line._vx, line._vy);
+    },
+
     statics: /** @lends Line */{
-        intersect: function(apx, apy, avx, avy, bpx, bpy, bvx, bvy, asVector,
+        intersect: function(p1x, p1y, v1x, v1y, p2x, p2y, v2x, v2y, asVector,
                 isInfinite) {
             // Convert 2nd points to vectors if they are not specified as such.
             if (!asVector) {
-                avx -= apx;
-                avy -= apy;
-                bvx -= bpx;
-                bvy -= bpy;
+                v1x -= p1x;
+                v1y -= p1y;
+                v2x -= p2x;
+                v2y -= p2y;
             }
-            var cross = avx * bvy - avy * bvx;
+            var cross = v1x * v2y - v1y * v2x;
             // Avoid divisions by 0, and errors when getting too close to 0
             if (!Numerical.isZero(cross)) {
-                var dx = apx - bpx,
-                    dy = apy - bpy,
-                    ta = (bvx * dy - bvy * dx) / cross,
-                    tb = (avx * dy - avy * dx) / cross;
-                // Check the ranges of t parameters if the line is not allowed
-                // to extend beyond the definition points.
-                if (isInfinite || 0 <= ta && ta <= 1 && 0 <= tb && tb <= 1)
+                var dx = p1x - p2x,
+                    dy = p1y - p2y,
+                    u1 = (v2x * dy - v2y * dx) / cross,
+                    u2 = (v1x * dy - v1y * dx) / cross,
+                    // Check the ranges of the u parameters if the line is not
+                    // allowed to extend beyond the definition points, but
+                    // compare with EPSILON tolerance over the [0, 1] bounds.
+                    epsilon = /*#=*/Numerical.EPSILON,
+                    uMin = -epsilon,
+                    uMax = 1 + epsilon;
+                if (isInfinite
+                        || uMin < u1 && u1 < uMax && uMin < u2 && u2 < uMax) {
+                    if (!isInfinite) {
+                        // Address the tolerance at the bounds by clipping to
+                        // the actual range.
+                        u1 = u1 <= 0 ? 0 : u1 >= 1 ? 1 : u1;
+                    }
                     return new Point(
-                                apx + ta * avx,
-                                apy + ta * avy);
+                            p1x + u1 * v1x,
+                            p1y + u1 * v1y);
+                }
             }
         },
 
-        getSide: function(px, py, vx, vy, x, y, asVector) {
+        getSide: function(px, py, vx, vy, x, y, asVector, isInfinite) {
             if (!asVector) {
                 vx -= px;
                 vy -= py;
             }
             var v2x = x - px,
                 v2y = y - py,
-                ccw = v2x * vy - v2y * vx; // ccw = v2.cross(v1);
-            if (ccw === 0) {
-                ccw = v2x * vx + v2y * vy; // ccw = v2.dot(v1);
-                if (ccw > 0) {
-                    // ccw = v2.subtract(v1).dot(v1);
-                    v2x -= vx;
-                    v2y -= vy;
-                    ccw = v2x * vx + v2y * vy;
-                    if (ccw < 0)
-                        ccw = 0;
-                }
+                // ccw = v2.cross(v1);
+                ccw = v2x * vy - v2y * vx;
+            if (ccw === 0 && !isInfinite) {
+                // If the point is on the infinite line, check if it's on the
+                // finite line too: Project v2 onto v1 and determine ccw based
+                // on which side of the finite line the point lies. Calculate
+                // the 'u' value of the point on the line, and use it for ccw:
+                // u = v2.dot(v1) / v1.dot(v1)
+                ccw = (v2x * vx + v2x * vx) / (vx * vx + vy * vy);
+                // If the 'u' value is within the line range, set ccw to 0,
+                // otherwise its already correct sign is all we need.
+                if (ccw >= 0 && ccw <= 1)
+                    ccw = 0;
             }
             return ccw < 0 ? -1 : ccw > 0 ? 1 : 0;
         },
@@ -165,11 +187,10 @@ var Line = Base.extend(/** @lends Line# */{
                 vx -= px;
                 vy -= py;
             }
-            return Numerical.isZero(vx)
-                    ? vy >= 0 ? px - x : x - px
-                    : Numerical.isZero(vy)
-                        ? vx >= 0 ? y - py : py - y
-                        : (vx * (y - py) - vy * (x - px)) / Math.sqrt(vx * vx + vy * vy);
+            // Based on the error analysis by @iconexperience outlined in #799
+            return vx === 0 ? vy > 0 ? x - px : px - x
+                 : vy === 0 ? vx < 0 ? y - py : py - y
+                 : ((x-px) * vy - (y-py) * vx) / Math.sqrt(vx * vx + vy * vy);
         }
     }
 });

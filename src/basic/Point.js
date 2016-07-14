@@ -1,9 +1,8 @@
-
 /*
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * Copyright (c) 2011 - 2016, Juerg Lehni & Jonathan Puckey
  * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
@@ -47,7 +46,7 @@ var Point = Base.extend(/** @lends Point# */{
      * coordinates.
      *
      * @name Point#initialize
-     * @param {array} array
+     * @param {Array} array
      *
      * @example
      * // Creating a point at x: 10, y: 5 using an array of numbers:
@@ -143,19 +142,20 @@ var Point = Base.extend(/** @lends Point# */{
             if (this.__read)
                 this.__read = arg0 === null ? 1 : 0;
         } else {
-            if (Array.isArray(arg0)) {
-                this.x = arg0[0];
-                this.y = arg0.length > 1 ? arg0[1] : arg0[0];
-            } else if (arg0.x != null) {
-                this.x = arg0.x;
-                this.y = arg0.y;
-            } else if (arg0.width != null) {
-                this.x = arg0.width;
-                this.y = arg0.height;
-            } else if (arg0.angle != null) {
-                this.x = arg0.length;
+            var obj = type === 'string' ? arg0.split(/[\s,]+/) || [] : arg0;
+            if (Array.isArray(obj)) {
+                this.x = obj[0];
+                this.y = obj.length > 1 ? obj[1] : obj[0];
+            } else if ('x' in obj) {
+                this.x = obj.x;
+                this.y = obj.y;
+            } else if ('width' in obj) {
+                this.x = obj.width;
+                this.y = obj.height;
+            } else if ('angle' in obj) {
+                this.x = obj.length;
                 this.y = 0;
-                this.setAngle(arg0.angle);
+                this.setAngle(obj.angle);
             } else {
                 this.x = this.y = 0;
                 if (this.__read)
@@ -218,7 +218,7 @@ var Point = Base.extend(/** @lends Point# */{
      * var point2 = point1.clone();
      * point2.x = 1; // doesn't change point1.x
      *
-     * @returns {Point} the cloned point
+     * @return {Point} the cloned point
      */
     clone: function() {
         return new Point(this.x, this.y);
@@ -241,12 +241,12 @@ var Point = Base.extend(/** @lends Point# */{
 
     /**
      * The length of the vector that is represented by this point's coordinates.
-     * Each point can be interpreted as a vector that points from the origin
-     * ({@code x = 0}, {@code y = 0}) to the point's location.
-     * Setting the length changes the location but keeps the vector's angle.
+     * Each point can be interpreted as a vector that points from the origin (`x
+     * = 0`, `y = 0`) to the point's location. Setting the length changes the
+     * location but keeps the vector's angle.
      *
-     * @type Number
      * @bean
+     * @type Number
      */
     getLength: function() {
         return Math.sqrt(this.x * this.x + this.y * this.y);
@@ -285,8 +285,8 @@ var Point = Base.extend(/** @lends Point# */{
     /**
      * The vector's angle in degrees, measured from the x-axis to the vector.
      *
-     * @name Point#getAngle
      * @bean
+     * @name Point#getAngle
      * @type Number
      */
     getAngle: function(/* point */) {
@@ -312,8 +312,8 @@ var Point = Base.extend(/** @lends Point# */{
     /**
      * The vector's angle in radians, measured from the x-axis to the vector.
      *
-     * @name Point#getAngleInRadians
      * @bean
+     * @name Point#getAngleInRadians
      * @type Number
      */
     getAngleInRadians: function(/* point */) {
@@ -357,13 +357,13 @@ var Point = Base.extend(/** @lends Point# */{
     /**
      * The quadrant of the {@link #angle} of the point.
      *
-     * Angles between 0 and 90 degrees are in quadrant {@code 1}. Angles between
-     * 90 and 180 degrees are in quadrant {@code 2}, angles between 180 and 270
-     * degrees are in quadrant {@code 3} and angles between 270 and 360 degrees
-     * are in quadrant {@code 4}.
+     * Angles between 0 and 90 degrees are in quadrant `1`. Angles between 90
+     * and 180 degrees are in quadrant `2`, angles between 180 and 270 degrees
+     * are in quadrant `3` and angles between 270 and 360 degrees are in
+     * quadrant `4`.
      *
-     * @type Number
      * @bean
+     * @type Number
      *
      * @example
      * var point = new Point({
@@ -410,7 +410,7 @@ var Point = Base.extend(/** @lends Point# */{
      *
      * @param {Point} point
      * @param {Boolean} [squared=false] Controls whether the distance should
-     *        remain squared, or its square root should be calculated.
+     * remain squared, or its square root should be calculated
      * @return {Number}
      */
     getDistance: function(/* point, squared */) {
@@ -423,14 +423,14 @@ var Point = Base.extend(/** @lends Point# */{
     },
 
     /**
-     * Normalize modifies the {@link #length} of the vector to {@code 1} without
-     * changing its angle and returns it as a new point. The optional
-     * {@code length} parameter defines the length to normalize to.
-     * The object itself is not modified!
+     * Normalize modifies the {@link #length} of the vector to `1` without
+     * changing its angle and returns it as a new point. The optional `length`
+     * parameter defines the length to normalize to. The object itself is not
+     * modified!
      *
      * @param {Number} [length=1] The length of the normalized vector
      * @return {Point} the normalized vector of the vector that is represented
-     *                 by this point's coordinates
+     *     by this point's coordinates
      */
     normalize: function(length) {
         if (length === undefined)
@@ -453,18 +453,18 @@ var Point = Base.extend(/** @lends Point# */{
      *
      * @param {Number} angle the rotation angle
      * @param {Point} center the center point of the rotation
-     * @returns {Point} the rotated point
+     * @return {Point} the rotated point
      */
     rotate: function(angle, center) {
         if (angle === 0)
             return this.clone();
         angle = angle * Math.PI / 180;
         var point = center ? this.subtract(center) : this,
-            s = Math.sin(angle),
-            c = Math.cos(angle);
+            sin = Math.sin(angle),
+            cos = Math.cos(angle);
         point = new Point(
-            point.x * c - point.y * s,
-            point.x * s + point.y * c
+            point.x * cos - point.y * sin,
+            point.x * sin + point.y * cos
         );
         return center ? point.add(center) : point;
     },
@@ -565,7 +565,8 @@ var Point = Base.extend(/** @lends Point# */{
      * @function
      * @operator
      * @param {Number} number the number to multiply by
-     * @return {Point} the multiplication of the point and the value as a new point
+     * @return {Point} the multiplication of the point and the value as a new
+     *     point
      *
      * @example
      * var point = new Point(10, 20);
@@ -641,7 +642,7 @@ var Point = Base.extend(/** @lends Point# */{
      * @operator
      * @param {Number} value
      * @return {Point} the integer remainders of dividing the point by the value
-     *                 as a new point
+     * as a new point
      *
      * @example
      * var point = new Point(12, 6);
@@ -656,7 +657,7 @@ var Point = Base.extend(/** @lends Point# */{
      * @operator
      * @param {Point} point
      * @return {Point} the integer remainders of dividing the points by each
-     *                 other as a new point
+     * other as a new point
      *
      * @example
      * var point = new Point(12, 6);
@@ -677,7 +678,7 @@ var Point = Base.extend(/** @lends Point# */{
      * Checks whether the point is inside the boundaries of the rectangle.
      *
      * @param {Rectangle} rect the rectangle to check against
-     * @returns {Boolean} {@true if the point is inside the rectangle}
+     * @return {Boolean} {@true if the point is inside the rectangle}
      */
     isInside: function(/* rect */) {
         return Rectangle.read(arguments).contains(this);
@@ -688,38 +689,45 @@ var Point = Base.extend(/** @lends Point# */{
      *
      * @param {Point} point the point to check against
      * @param {Number} tolerance the maximum distance allowed
-     * @returns {Boolean} {@true if it is within the given distance}
+     * @return {Boolean} {@true if it is within the given distance}
      */
-    isClose: function(point, tolerance) {
-        return this.getDistance(point) < tolerance;
+    isClose: function(/* point, tolerance */) {
+        var point = Point.read(arguments),
+            tolerance = Base.read(arguments);
+        return this.getDistance(point) <= tolerance;
     },
 
     /**
-     * Checks if the vector represented by this point is colinear (parallel) to
+     * Checks if the vector represented by this point is collinear (parallel) to
      * another vector.
      *
      * @param {Point} point the vector to check against
-     * @returns {Boolean} {@true it is colinear}
+     * @return {Boolean} {@true it is collinear}
      */
-    isColinear: function(point) {
-        return Math.abs(this.cross(point)) < /*#=*/Numerical.EPSILON;
+    isCollinear: function(/* point */) {
+        var point = Point.read(arguments);
+        return Point.isCollinear(this.x, this.y, point.x, point.y);
     },
+
+    // TODO: Remove version with typo after a while (deprecated June 2015)
+    isColinear: '#isCollinear',
 
     /**
      * Checks if the vector represented by this point is orthogonal
      * (perpendicular) to another vector.
      *
      * @param {Point} point the vector to check against
-     * @returns {Boolean} {@true it is orthogonal}
+     * @return {Boolean} {@true it is orthogonal}
      */
-    isOrthogonal: function(point) {
-        return Math.abs(this.dot(point)) < /*#=*/Numerical.EPSILON;
+    isOrthogonal: function(/* point */) {
+        var point = Point.read(arguments);
+        return Point.isOrthogonal(this.x, this.y, point.x, point.y);
     },
 
     /**
      * Checks if this point has both the x and y coordinate set to 0.
      *
-     * @returns {Boolean} {@true if both x and y are 0}
+     * @return {Boolean} {@true if both x and y are 0}
      */
     isZero: function() {
         return Numerical.isZero(this.x) && Numerical.isZero(this.y);
@@ -729,7 +737,7 @@ var Point = Base.extend(/** @lends Point# */{
      * Checks if this point has an undefined value for at least one of its
      * coordinates.
      *
-     * @returns {Boolean} {@true if either x or y are not a number}
+     * @return {Boolean} {@true if either x or y are not a number}
      */
     isNaN: function() {
         return isNaN(this.x) || isNaN(this.y);
@@ -740,7 +748,7 @@ var Point = Base.extend(/** @lends Point# */{
      * Returns the dot product of the point and another point.
      *
      * @param {Point} point
-     * @returns {Number} the dot product of the two points
+     * @return {Number} the dot product of the two points
      */
     dot: function(/* point */) {
         var point = Point.read(arguments);
@@ -751,7 +759,7 @@ var Point = Base.extend(/** @lends Point# */{
      * Returns the cross product of the point and another point.
      *
      * @param {Point} point
-     * @returns {Number} the cross product of the two points
+     * @return {Number} the cross product of the two points
      */
     cross: function(/* point */) {
         var point = Point.read(arguments);
@@ -759,33 +767,51 @@ var Point = Base.extend(/** @lends Point# */{
     },
 
     /**
-     * Returns the projection of the point on another point.
+     * Returns the projection of the point onto another point.
      * Both points are interpreted as vectors.
      *
      * @param {Point} point
-     * @returns {Point} the projection of the point on another point
+     * @return {Point} the projection of the point onto another point
      */
     project: function(/* point */) {
-        var point = Point.read(arguments);
-        if (point.isZero()) {
-            return new Point(0, 0);
-        } else {
-            var scale = this.dot(point) / point.dot(point);
-            return new Point(
-                point.x * scale,
-                point.y * scale
-            );
-        }
+        var point = Point.read(arguments),
+            scale = point.isZero() ? 0 : this.dot(point) / point.dot(point);
+        return new Point(
+            point.x * scale,
+            point.y * scale
+        );
     },
 
     /**
-     * This property is only present if the point is an anchor or control point
-     * of a {@link Segment} or a {@link Curve}. In this case, it returns
-     * {@true it is selected}
+     * This property is only valid if the point is an anchor or handle point
+     * of a {@link Segment} or a {@link Curve}, or the position of an
+     * {@link Item}, as returned by {@link Item#position},
+     * {@link Segment#point}, {@link Segment#handleIn},
+     * {@link Segment#handleOut}, {@link Curve#point1}, {@link Curve#point2},
+     * {@link Curve#handle1}, {@link Curve#handle2}.
+     *
+     * In those cases, it returns {@true if it the point is selected}.
+     *
+     * Paper.js renders selected points on top of your project. This is very
+     * useful when debugging.
      *
      * @name Point#selected
      * @property
-     * @return {Boolean} {@true if the point is selected}
+     * @type Boolean
+     * @default false
+     *
+     * @example {@paperscript}
+     * var path = new Path.Circle({
+     *     center: [80, 50],
+     *     radius: 40
+     * });
+     *
+     * // Select the third segment point:
+     * path.segments[2].point.selected = true;
+     *
+     * // Select the item's position, which is the pivot point
+     * // around which it is transformed:
+     * path.position.selected = true;
      */
 
     /**
@@ -855,13 +881,20 @@ var Point = Base.extend(/** @lends Point# */{
          * @static
          * @param {Point} point1
          * @param {Point} point2
-         * @returns {Point} the newly created point object
+         * @return {Point} the newly created point object
          *
          * @example
          * var point1 = new Point(10, 100);
          * var point2 = new Point(200, 5);
          * var minPoint = Point.min(point1, point2);
          * console.log(minPoint); // {x: 10, y: 5}
+         *
+         * @example
+         * // Find the minimum of multiple points:
+         * var point1 = new Point(60, 100);
+         * var point2 = new Point(200, 5);
+         * var point3 = new Point(250, 35);
+         * [point1, point2, point3].reduce(Point.min) // {x: 60, y: 5}
          */
         min: function(/* point1, point2 */) {
             var point1 = Point.read(arguments),
@@ -879,13 +912,20 @@ var Point = Base.extend(/** @lends Point# */{
          * @static
          * @param {Point} point1
          * @param {Point} point2
-         * @returns {Point} the newly created point object
+         * @return {Point} the newly created point object
          *
          * @example
          * var point1 = new Point(10, 100);
          * var point2 = new Point(200, 5);
          * var maxPoint = Point.max(point1, point2);
          * console.log(maxPoint); // {x: 200, y: 100}
+         *
+         * @example
+         * // Find the maximum of multiple points:
+         * var point1 = new Point(60, 100);
+         * var point2 = new Point(200, 5);
+         * var point3 = new Point(250, 35);
+         * [point1, point2, point3].reduce(Point.max) // {x: 250, y: 100}
          */
         max: function(/* point1, point2 */) {
             var point1 = Point.read(arguments),
@@ -898,9 +938,9 @@ var Point = Base.extend(/** @lends Point# */{
 
         /**
          * Returns a point object with random {@link #x} and {@link #y} values
-         * between {@code 0} and {@code 1}.
+         * between `0` and `1`.
          *
-         * @returns {Point} the newly created point object
+         * @return {Point} the newly created point object
          * @static
          *
          * @example
@@ -912,12 +952,29 @@ var Point = Base.extend(/** @lends Point# */{
          */
         random: function() {
             return new Point(Math.random(), Math.random());
+        },
+
+        isCollinear: function(x1, y1, x2, y2) {
+            // NOTE: We use normalized vectors so that the epsilon comparison is
+            // reliable. We could instead scale the epsilon based on the vector
+            // length. But instead of normalizing the vectors before calculating
+            // the cross product, we can scale the epsilon accordingly.
+            return Math.abs(x1 * y2 - y1 * x2)
+                    <= Math.sqrt((x1 * x1 + y1 * y1) * (x2 * x2 + y2 * y2))
+                        * /*#=*/Numerical.TRIGONOMETRIC_EPSILON;
+        },
+
+        isOrthogonal: function(x1, y1, x2, y2) {
+            // See Point.isCollinear()
+            return Math.abs(x1 * x2 + y1 * y2)
+                    <= Math.sqrt((x1 * x1 + y1 * y1) * (x2 * x2 + y2 * y2))
+                        * /*#=*/Numerical.TRIGONOMETRIC_EPSILON;
         }
     }
-}, Base.each(['round', 'ceil', 'floor', 'abs'], function(name) {
+}, Base.each(['round', 'ceil', 'floor', 'abs'], function(key) {
     // Inject round, ceil, floor, abs:
-    var op = Math[name];
-    this[name] = function() {
+    var op = Math[key];
+    this[key] = function() {
         return new Point(op(this.x), op(this.y));
     };
 }, {}));
@@ -928,9 +985,8 @@ var Point = Base.extend(/** @lends Point# */{
  * @class An internal version of Point that notifies its owner of each change
  * through setting itself again on the setter that corresponds to the getter
  * that produced this LinkedPoint.
- * Note: This prototype is not exported.
  *
- * @ignore
+ * @private
  */
 var LinkedPoint = Point.extend({
     // Have LinkedPoint appear as a normal Point in debugging
@@ -965,5 +1021,17 @@ var LinkedPoint = Point.extend({
     setY: function(y) {
         this._y = y;
         this._owner[this._setter](this);
+    },
+
+    isSelected: function() {
+        return !!(this._owner._selection & this._getSelection());
+    },
+
+    setSelected: function(selected) {
+        this._owner.changeSelection(this._getSelection(), selected);
+    },
+
+    _getSelection: function() {
+        return this._setter === 'setPosition' ? /*#=*/ItemSelection.POSITION : 0;
     }
 });

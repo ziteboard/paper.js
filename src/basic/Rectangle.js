@@ -2,7 +2,7 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * Copyright (c) 2011 - 2016, Juerg Lehni & Jonathan Puckey
  * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
@@ -37,7 +37,7 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      *
      * @name Rectangle#initialize
      * @param {Object} object an object containing properties to be set on the
-     *        rectangle.
+     * rectangle
      *
      * @example // Create a rectangle between {x: 20, y: 20} and {x: 80, y:80}
      * var rectangle = new Rectangle({
@@ -66,8 +66,8 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      * constructor figures out how to fit a rectangle between them.
      *
      * @name Rectangle#initialize
-     * @param {Point} from The first point defining the rectangle
-     * @param {Point} to The second point defining the rectangle
+     * @param {Point} from the first point defining the rectangle
+     * @param {Point} to the second point defining the rectangle
      */
     /**
      * Creates a new rectangle object from the passed rectangle object.
@@ -237,8 +237,8 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
     /**
      * The top-left point of the rectangle
      *
-     * @type Point
      * @bean
+     * @type Point
      */
     getPoint: function(_dontLink) {
         var ctor = _dontLink ? Point : LinkedPoint;
@@ -255,8 +255,8 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
     /**
      * The size of the rectangle
      *
-     * @type Size
      * @bean
+     * @type Size
      */
     getSize: function(_dontLink) {
         var ctor = _dontLink ? Size : LinkedSize;
@@ -288,8 +288,8 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      * The position of the left hand side of the rectangle. Note that this
      * doesn't move the whole rectangle; the right hand side stays where it was.
      *
-     * @type Number
      * @bean
+     * @type Number
      */
     getLeft: function() {
         return this.x;
@@ -306,8 +306,8 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      * The top coordinate of the rectangle. Note that this doesn't move the
      * whole rectangle: the bottom won't move.
      *
-     * @type Number
      * @bean
+     * @type Number
      */
     getTop: function() {
         return this.y;
@@ -324,8 +324,8 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      * The position of the right hand side of the rectangle. Note that this
      * doesn't move the whole rectangle; the left hand side stays where it was.
      *
-     * @type Number
      * @bean
+     * @type Number
      */
     getRight: function() {
         return this.x + this.width;
@@ -346,8 +346,8 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      * The bottom coordinate of the rectangle. Note that this doesn't move the
      * whole rectangle: the top won't move.
      *
-     * @type Number
      * @bean
+     * @type Number
      */
     getBottom: function() {
         return this.y + this.height;
@@ -367,8 +367,8 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
     /**
      * The center-x coordinate of the rectangle.
      *
-     * @type Number
      * @bean
+     * @type Number
      * @ignore
      */
     getCenterX: function() {
@@ -383,8 +383,8 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
     /**
      * The center-y coordinate of the rectangle.
      *
-     * @type Number
      * @bean
+     * @type Number
      * @ignore
      */
     getCenterY: function() {
@@ -401,8 +401,8 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      *
      * The center point of the rectangle.
      *
-     * @type Point
      * @bean
+     * @type Point
      */
     getCenter: function(_dontLink) {
         var ctor = _dontLink ? Point : LinkedPoint;
@@ -474,12 +474,12 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      * @type Point
      */
 
-     /**
-      * The area of the rectangle in square points.
-      *
-      * @type Number
-      * @bean
-      */
+    /**
+     * The area of the rectangle.
+     *
+     * @bean
+     * @type Number
+     */
     getArea: function() {
         return this.width * this.height;
     },
@@ -528,9 +528,9 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      *
      * @name Rectangle#contains
      * @function
-     * @param {Rectangle} rect The specified rectangle
+     * @param {Rectangle} rect the specified rectangle
      * @return {Boolean} {@true if the rectangle entirely contains the specified
-     *                   rectangle}
+     * rectangle}
      *
      * @example {@paperscript}
      * // Checking whether the bounding box of one item is contained within
@@ -572,7 +572,7 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
         // or by looking at the amount of elements in the arguments list,
         // or the passed array:
         return arg && arg.width !== undefined
-                || (Array.isArray(arg) ? arg : arguments).length == 4
+                || (Array.isArray(arg) ? arg : arguments).length === 4
                 ? this._containsRectangle(Rectangle.read(arguments))
                 : this._containsPoint(Point.read(arguments));
     },
@@ -600,7 +600,7 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      *
      * @param {Rectangle} rect the specified rectangle
      * @return {Boolean} {@true if the rectangle and the specified rectangle
-     *                   intersect each other}
+     * intersect each other}
      *
      * @example {@paperscript}
      * // Checking whether the bounding box of one item intersects with
@@ -659,10 +659,10 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      * Returns a new rectangle representing the intersection of this rectangle
      * with the specified rectangle.
      *
-     * @param {Rectangle} rect The rectangle to be intersected with this
-     *                         rectangle
+     * @param {Rectangle} rect the rectangle to be intersected with this
+     * rectangle
      * @return {Rectangle} the largest rectangle contained in both the specified
-     *                     rectangle and in this rectangle
+     * rectangle and in this rectangle
      *
      * @example {@paperscript}
      * // Intersecting two rectangles and visualizing the result using rectangle
@@ -709,7 +709,7 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      *
      * @param {Rectangle} rect the rectangle to be combined with this rectangle
      * @return {Rectangle} the smallest rectangle containing both the specified
-     *                     rectangle and this rectangle.
+     * rectangle and this rectangle
      */
     unite: function(/* rect */) {
         var rect = Rectangle.read(arguments),
@@ -721,16 +721,16 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
     },
 
     /**
-     * Adds a point to this rectangle. The resulting rectangle is the
-     * smallest rectangle that contains both the original rectangle and the
-     * specified point.
+     * Adds a point to this rectangle. The resulting rectangle is the smallest
+     * rectangle that contains both the original rectangle and the specified
+     * point.
      *
      * After adding a point, a call to {@link #contains(point)} with the added
-     * point as an argument does not necessarily return {@code true}.
-     * The {@link Rectangle#contains(point)} method does not return {@code true}
-     * for points on the right or bottom edges of a rectangle. Therefore, if the
-     * added point falls on the left or bottom edge of the enlarged rectangle,
-     * {@link Rectangle#contains(point)} returns {@code false} for that point.
+     * point as an argument does not necessarily return `true`. The {@link
+     * Rectangle#contains(point)} method does not return `true` for points on
+     * the right or bottom edges of a rectangle. Therefore, if the added point
+     * falls on the left or bottom edge of the enlarged rectangle, {@link
+     * Rectangle#contains(point)} returns `false` for that point.
      *
      * @param {Point} point
      */
@@ -760,7 +760,7 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      * @function
      * @param {Number} hor the amount to expand the rectangle in horizontal
      * direction
-     * @param {Number} ver the amount to expand the rectangle in horizontal
+     * @param {Number} ver the amount to expand the rectangle in vertical
      * direction
      */
     expand: function(/* amount */) {
@@ -779,9 +779,9 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
      * @param {Number} amount
      */
     /**
-     * Scales the rectangle in horizontal direction by the specified
-     * {@code hor} amount and in vertical direction by the specified {@code ver}
-     * amount from its center.
+     * Scales the rectangle in horizontal direction by the specified `hor`
+     * amount and in vertical direction by the specified `ver` amount from its
+     * center.
      *
      * @name Rectangle#scale
      * @function
@@ -799,10 +799,10 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
         ['Right', 'Center'], ['Bottom', 'Center']
     ],
     function(parts, index) {
-        var part = parts.join('');
-        // find out if the first of the pair is an x or y property,
-        // by checking the first character for [R]ight or [L]eft;
-        var xFirst = /^[RL]/.test(part);
+        var part = parts.join(''),
+            // find out if the first of the pair is an x or y property,
+            // by checking the first character for [R]ight or [L]eft;
+            xFirst = /^[RL]/.test(part);
         // Rename Center to CenterX or CenterY:
         if (index >= 4)
             parts[1] += xFirst ? 'Y' : 'X';
@@ -836,7 +836,6 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
  * @class An internal version of Rectangle that notifies its owner of each
  * change through setting itself again on the setter that corresponds to the
  * getter that produced this LinkedRectangle.
- * Note: This prototype is not exported.
  *
  * @private
  */
@@ -857,12 +856,13 @@ var LinkedRectangle = Rectangle.extend({
             this._owner[this._setter](this);
         return this;
     }
-}, new function() {
+},
+new function() {
     var proto = Rectangle.prototype;
 
     return Base.each(['x', 'y', 'width', 'height'], function(key) {
-        var part = Base.capitalize(key);
-        var internal = '_' + key;
+        var part = Base.capitalize(key),
+            internal = '_' + key;
         this['get' + part] = function() {
             return this[internal];
         };
@@ -893,29 +893,32 @@ var LinkedRectangle = Rectangle.extend({
             /**
              * {@grouptitle Item Bounds}
              *
-             * Specifies whether an item's bounds are selected and will also
-             * mark the item as selected.
+             * Specifies whether an item's bounds are to appear as selected.
              *
-             * Paper.js draws the visual bounds of selected items on top of your
-             * project. This can be useful for debugging.
+             * Paper.js draws the bounds of items with selected bounds on top of
+             * your project. This is very useful when debugging.
              *
+             * @bean
              * @type Boolean
              * @default false
-             * @bean
+             *
+             * @example {@paperscript}
+             * var path = new Path.Circle({
+             *     center: [80, 50],
+             *     radius: 40,
+             *     selected: true
+             * });
+             *
+             * path.bounds.selected = true;
              */
             isSelected: function() {
-                return this._owner._boundsSelected;
+                return !!(this._owner._selection & /*#=*/ItemSelection.BOUNDS);
             },
 
             setSelected: function(selected) {
                 var owner = this._owner;
-                if (owner.setSelected) {
-                    owner._boundsSelected = selected;
-                    // Update the owner's selected state too, so the bounds
-                    // actually get drawn. When deselecting, take a path's
-                    // _selectedSegmentState into account too, since it will
-                    // have to remain selected even when bounds are deselected
-                    owner.setSelected(selected || owner._selectedSegmentState > 0);
+                if (owner.changeSelection) {
+                    owner.changeSelection(/*#=*/ItemSelection.BOUNDS, selected);
                 }
             }
         })

@@ -2,7 +2,7 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * Copyright (c) 2011 - 2016, Juerg Lehni & Jonathan Puckey
  * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
@@ -13,16 +13,16 @@
 /**
  * @name CurveLocation
  *
- * @class CurveLocation objects describe a location on {@link Curve}
- * objects, as defined by the curve {@link #parameter}, a value between
- * {@code 0} (beginning of the curve) and {@code 1} (end of the curve). If
- * the curve is part of a {@link Path} item, its {@link #index} inside the
- * {@link Path#curves} array is also provided.
+ * @class CurveLocation objects describe a location on {@link Curve} objects, as
+ *     defined by the curve-time {@link #time}, a value between `0` (beginning
+ *     of the curve) and `1` (end of the curve). If the curve is part of a
+ *     {@link Path} item, its {@link #index} inside the {@link Path#curves}
+ *     array is also provided.
  *
  * The class is in use in many places, such as
- * {@link Path#getLocationAt(offset, isParameter)},
+ * {@link Path#getLocationAt(offset)},
  * {@link Path#getLocationOf(point)},
- * {@link Path#getNearestLocation(point),
+ * {@link PathItem#getNearestLocation(point)},
  * {@link PathItem#getIntersections(path)},
  * etc.
  */
@@ -32,106 +32,128 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
     // See #getSegment() below.
     beans: true,
 
-    // DOCS: CurveLocation class description: add these back when the  mentioned
+    // DOCS: CurveLocation class description: add these back when the mentioned
     // functioned have been added: {@link Path#split(location)}
     /**
      * Creates a new CurveLocation object.
      *
      * @param {Curve} curve
-     * @param {Number} parameter
-     * @param {Point} point
+     * @param {Number} time
+     * @param {Point} [point]
      */
-    initialize: function CurveLocation(curve, parameter, point, _curve2,
-            _parameter2, _point2, _distance) {
-        // Define this CurveLocation's unique id.
-        this._id = CurveLocation._id = (CurveLocation._id || 0) + 1;
+    initialize: function CurveLocation(curve, time, point, _overlap, _distance) {
+        // Merge intersections very close to the end of a curve with the
+        // beginning of the next curve.
+        if (time > /*#=*/(1 - Numerical.CURVETIME_EPSILON)) {
+            var next = curve.getNext();
+            if (next) {
+                time = 0;
+                curve = next;
+            }
+        }
+        this._setCurve(curve);
+        this._time = time;
+        this._point = point || curve.getPointAtTime(time);
+        this._overlap = _overlap;
+        this._distance = _distance;
+        // Properties related to linked intersection locations
+        this._intersection = this._next = this._previous = null;
+    },
+
+    _setCurve: function(curve) {
+        var path = curve._path;
+        // We only store the path to verify versions for cachd values.
+        // To ensure we use the right path (e.g. after splitting), we shall
+        // always access the path on the result of getCurve().
+        this._path = path;
+        this._version = path ? path._version : 0;
         this._curve = curve;
+        this._segment = null; // To be determined, see #getSegment()
         // Also store references to segment1 and segment2, in case path
         // splitting / dividing is going to happen, in which case the segments
         // can be used to determine the new curves, see #getCurve(true)
         this._segment1 = curve._segment1;
         this._segment2 = curve._segment2;
-        this._parameter = parameter;
-        this._point = point;
-        this._curve2 = _curve2;
-        this._parameter2 = _parameter2;
-        this._point2 = _point2;
-        this._distance = _distance;
+    },
+
+    _setSegment: function(segment) {
+        this._setCurve(segment.getCurve());
+        this._segment = segment;
+        this._time = segment === this._segment1 ? 0 : 1;
+        // To avoid issues with imprecision in getCurve() / trySegment()
+        this._point = segment._point.clone();
     },
 
     /**
      * The segment of the curve which is closer to the described location.
      *
-     * @type Segment
      * @bean
+     * @type Segment
      */
-    getSegment: function(_preferFirst) {
-        if (!this._segment) {
-            var curve = this.getCurve(),
-                parameter = this.getParameter();
-            if (parameter === 1) {
-                this._segment = curve._segment2;
-            } else if (parameter === 0 || _preferFirst) {
-                this._segment = curve._segment1;
-            } else if (parameter == null) {
-                return null;
-            } else {
+    getSegment: function() {
+        // Request curve first, so _segment gets invalidated if it's out of sync
+        var curve = this.getCurve(),
+            segment = this._segment;
+        if (!segment) {
+            var time = this.getTime();
+            if (time === 0) {
+                segment = curve._segment1;
+            } else if (time === 1) {
+                segment = curve._segment2;
+            } else if (time != null) {
                 // Determine the closest segment by comparing curve lengths
-                this._segment = curve.getPartLength(0, parameter)
-                    < curve.getPartLength(parameter, 1)
+                segment = curve.getPartLength(0, time)
+                    < curve.getPartLength(time, 1)
                         ? curve._segment1
                         : curve._segment2;
             }
+            this._segment = segment;
         }
-        return this._segment;
+        return segment;
     },
 
     /**
      * The curve that this location belongs to.
      *
+     * @bean
      * @type Curve
-     * @bean
      */
-    getCurve: function(_uncached) {
-        if (!this._curve || _uncached) {
-            // If we're asked to get the curve uncached, access current curve
-            // objects through segment1 / segment2. Since path splitting or
-            // dividing might have happened in the meantime, try segment1's
-            // curve, and see if _point lies on it still, otherwise assume it's
-            // the curve before segment2.
-            this._curve = this._segment1.getCurve();
-            if (this._curve.getParameterOf(this._point) == null)
-                this._curve = this._segment2.getPrevious().getCurve();
+    getCurve: function() {
+        var path = this._path,
+            that = this;
+        if (path && path._version !== this._version) {
+            // If the path's segments have changed in the meantime, clear the
+            // internal _time value and force re-fetching of the correct
+            // curve again here.
+            this._time = this._curve = this._offset = null;
         }
-        return this._curve;
+
+        // If path is out of sync, access current curve objects through segment1
+        // / segment2. Since path splitting or dividing might have happened in
+        // the meantime, try segment1's curve, and see if _point lies on it
+        // still, otherwise assume it's the curve before segment2.
+        function trySegment(segment) {
+            var curve = segment && segment.getCurve();
+            if (curve && (that._time = curve.getTimeOf(that._point))
+                    != null) {
+                // Fetch path again as it could be on a new one through split()
+                that._setCurve(curve);
+                that._segment = segment;
+                return curve;
+            }
+        }
+
+        return this._curve
+            || trySegment(this._segment)
+            || trySegment(this._segment1)
+            || trySegment(this._segment2.getPrevious());
     },
 
     /**
-     * The curve location on the intersecting curve, if this location is the
-     * result of a call to {@link PathItem#getIntersections(path)} /
-     * {@link Curve#getIntersections(curve)}.
+     * The path that this locations is situated on.
      *
-     * @type CurveLocation
      * @bean
-     */
-    getIntersection: function() {
-        var intersection = this._intersection;
-        if (!intersection && this._curve2) {
-            var param = this._parameter2;
-            // If we have the parameter on the other curve use that for
-            // intersection rather than the point.
-            this._intersection = intersection = new CurveLocation(
-                    this._curve2, param, this._point2 || this._point, this);
-            intersection._intersection = this;
-        }
-        return intersection;
-    },
-
-    /**
-     * The path this curve belongs to, if any.
-     *
      * @type Item
-     * @bean
      */
     getPath: function() {
         var curve = this.getCurve();
@@ -139,11 +161,11 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
     },
 
     /**
-     * The index of the curve within the {@link Path#curves} list, if the
-     * curve is part of a {@link Path} item.
+     * The index of the {@link #curve} within the {@link Path#curves} list, if
+     * it is part of a {@link Path} item.
      *
-     * @type Index
      * @bean
+     * @type Index
      */
     getIndex: function() {
         var curve = this.getCurve();
@@ -151,123 +173,184 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
     },
 
     /**
+     * The curve-time parameter, as used by various bezier curve calculations.
+     * It is value between `0` (beginning of the curve) and `1` (end of the
+     * curve).
+     *
+     * @bean
+     * @type Number
+     */
+    getTime: function() {
+        var curve = this.getCurve(),
+            time = this._time;
+        return curve && time == null
+            ? this._time = curve.getTimeOf(this._point)
+            : time;
+    },
+
+    /**
+     * @private
+     * @bean
+     * @deprecated use {@link #getTime()} instead.
+     */
+    getParameter: '#getTime',
+
+    /**
+     * The point which is defined by the {@link #curve} and
+     * {@link #time}.
+     *
+     * @bean
+     * @type Point
+     */
+    getPoint: function() {
+        return this._point;
+    },
+
+    /**
      * The length of the path from its beginning up to the location described
      * by this object. If the curve is not part of a path, then the length
      * within the curve is returned instead.
      *
-     * @type Number
      * @bean
+     * @type Number
      */
     getOffset: function() {
-        var path = this.getPath();
-        return path ? path._getOffset(this) : this.getCurveOffset();
+        var offset = this._offset;
+        if (offset == null) {
+            offset = 0;
+            var path = this.getPath(),
+                index = this.getIndex();
+            if (path && index != null) {
+                var curves = path.getCurves();
+                for (var i = 0; i < index; i++)
+                    offset += curves[i].getLength();
+            }
+            this._offset = offset += this.getCurveOffset();
+        }
+        return offset;
     },
 
     /**
      * The length of the curve from its beginning up to the location described
      * by this object.
      *
-     * @type Number
      * @bean
+     * @type Number
      */
     getCurveOffset: function() {
         var curve = this.getCurve(),
-            parameter = this.getParameter();
-        return parameter != null && curve && curve.getPartLength(0, parameter);
+            time = this.getTime();
+        return time != null && curve && curve.getPartLength(0, time);
     },
 
     /**
-     * The curve parameter, as used by various bezier curve calculations. It is
-     * value between {@code 0} (beginning of the curve) and {@code 1} (end of
-     * the curve).
+     * The curve location on the intersecting curve, if this location is the
+     * result of a call to {@link PathItem#getIntersections(path)} /
+     * {@link Curve#getIntersections(curve)}.
      *
-     * @type Number
      * @bean
+     * @type CurveLocation
      */
-    getParameter: function(_uncached) {
-        if ((this._parameter == null || _uncached) && this._point) {
-            var curve = this.getCurve(_uncached);
-            this._parameter = curve && curve.getParameterOf(this._point);
-        }
-        return this._parameter;
-    },
-
-    /**
-     * The point which is defined by the {@link #curve} and
-     * {@link #parameter}.
-     *
-     * @type Point
-     * @bean
-     */
-    getPoint: function(_uncached) {
-        if ((!this._point || _uncached) && this._parameter != null) {
-            var curve = this.getCurve(_uncached);
-            this._point = curve && curve.getPointAt(this._parameter, true);
-        }
-        return this._point;
+    getIntersection: function() {
+        return this._intersection;
     },
 
     /**
      * The tangential vector to the {@link #curve} at the given location.
      *
-     * @name Item#tangent
+     * @name CurveLocation#getTangent
+     * @bean
      * @type Point
      */
 
     /**
      * The normal vector to the {@link #curve} at the given location.
      *
-     * @name Item#normal
+     * @name CurveLocation#getNormal
+     * @bean
      * @type Point
      */
 
     /**
      * The curvature of the {@link #curve} at the given location.
      *
-     * @name Item#curvature
+     * @name CurveLocation#getCurvature
+     * @bean
      * @type Number
      */
 
     /**
      * The distance from the queried point to the returned location.
      *
-     * @type Number
      * @bean
+     * @type Number
+     * @see Curve#getNearestLocation(point)
+     * @see Path#getNearestLocation(point)
      */
     getDistance: function() {
         return this._distance;
     },
 
+    // DOCS: divide(), split()
+
     divide: function() {
-        var curve = this.getCurve(true);
-        return curve && curve.divide(this.getParameter(true), true);
+        var curve = this.getCurve(),
+            res = null;
+        if (curve) {
+            res = curve.divideAtTime(this.getTime());
+            // Change to the newly inserted segment, also adjusting _time.
+            if (res)
+                this._setSegment(res._segment1);
+        }
+        return res;
     },
 
     split: function() {
-        var curve = this.getCurve(true);
-        return curve && curve.split(this.getParameter(true), true);
+        var curve = this.getCurve();
+        return curve ? curve.splitAtTime(this.getTime()) : null;
     },
 
     /**
      * Checks whether tow CurveLocation objects are describing the same location
      * on a path, by applying the same tolerances as elsewhere when dealing with
-     * curve time parameters.
+     * curve-time parameters.
      *
      * @param {CurveLocation} location
      * @return {Boolean} {@true if the locations are equal}
      */
-    equals: function(loc) {
-        var abs = Math.abs,
-            // Use the same tolerance for curve time parameter comparisons as
-            // in Curve.js when considering two locations the same.
-            tolerance = /*#=*/Numerical.TOLERANCE;
-        return this === loc
-                || loc
-                    && this._curve === loc._curve
-                    && this._curve2 === loc._curve2
-                    && abs(this._parameter - loc._parameter) <= tolerance
-                    && abs(this._parameter2 - loc._parameter2) <= tolerance
-                || false;
+    equals: function(loc, _ignoreOther) {
+        var res = this === loc,
+            epsilon = /*#=*/Numerical.GEOMETRIC_EPSILON;
+        // NOTE: We need to compare both by (index + parameter) and by proximity
+        // of points. See #784#issuecomment-143161586
+        if (!res && loc instanceof CurveLocation
+                && this.getPath() === loc.getPath()
+                && this.getPoint().isClose(loc.getPoint(), epsilon)) {
+            // The position is the same, but it could still be in a different
+            // location on the path. Perform more thorough checks now:
+            var c1 = this.getCurve(),
+                c2 = loc.getCurve(),
+                abs = Math.abs,
+                // We need to wrap diff around the path's beginning / end:
+                diff = abs(
+                    ((c1.isLast() && c2.isFirst() ? -1 : c1.getIndex())
+                            + this.getTime()) -
+                    ((c2.isLast() && c1.isFirst() ? -1 : c2.getIndex())
+                            + loc.getTime()));
+            res = (diff < /*#=*/Numerical.CURVETIME_EPSILON
+                // If diff isn't close enough, compare the actual offsets of
+                // both locations to determine if they're in the same spot,
+                // taking into account the wrapping around path ends too.
+                // This is necessary in order to handle very short consecutive
+                // curves (length ~< 1e-7), which would lead to diff > 1.
+                || ((diff = abs(this.getOffset() - loc.getOffset())) < epsilon
+                    || abs(this.getPath().getLength() - diff) < epsilon))
+                && (_ignoreOther
+                    || (!this._intersection && !loc._intersection
+                        || this._intersection && this._intersection.equals(
+                                loc._intersection, true)));
+        }
+        return res;
     },
 
     /**
@@ -282,19 +365,233 @@ var CurveLocation = Base.extend(/** @lends CurveLocation# */{
         var index = this.getIndex();
         if (index != null)
             parts.push('index: ' + index);
-        var parameter = this.getParameter();
-        if (parameter != null)
-            parts.push('parameter: ' + f.number(parameter));
+        var time = this.getTime();
+        if (time != null)
+            parts.push('time: ' + f.number(time));
         if (this._distance != null)
             parts.push('distance: ' + f.number(this._distance));
         return '{ ' + parts.join(', ') + ' }';
+    },
+
+
+    /**
+     * {@grouptitle Tests}
+     * Checks if the location is an intersection with another curve and is
+     * merely touching the other curve, as opposed to crossing it.
+     *
+     * @return {Boolean} {@true if the location is an intersection that is
+     * merely touching another curve}
+     * @see #isCrossing()
+     */
+    isTouching: function() {
+        var inter = this._intersection;
+        if (inter && this.getTangent().isCollinear(inter.getTangent())) {
+            // Only consider two straight curves as touching if their lines
+            // don't intersect.
+            var curve1 = this.getCurve(),
+                curve2 = inter.getCurve();
+            return !(curve1.isStraight() && curve2.isStraight()
+                    && curve1.getLine().intersect(curve2.getLine()));
+        }
+        return false;
+    },
+
+    /**
+     * Checks if the location is an intersection with another curve and is
+     * crossing the other curve, as opposed to just touching it.
+     *
+     * @return {Boolean} {@true if the location is an intersection that is
+     * crossing another curve}
+     * @see #isTouching()
+     */
+    isCrossing: function() {
+        // Implementation loosely based on work by Andy Finnell:
+        // http://losingfight.com/blog/2011/07/09/how-to-implement-boolean-operations-on-bezier-paths-part-3/
+        // https://bitbucket.org/andyfinnell/vectorboolean
+        var inter = this._intersection;
+        if (!inter)
+            return false;
+        var t1 = this.getTime(),
+            t2 = inter.getTime(),
+            tMin = /*#=*/Numerical.CURVETIME_EPSILON,
+            tMax = 1 - tMin,
+            // t*Inside specifies if the found intersection is inside the curve.
+            t1Inside = t1 > tMin && t1 < tMax,
+            t2Inside = t2 > tMin && t2 < tMax;
+        // If the intersection is in the middle of both paths, it is either a
+        // tangent or a crossing, no need for the detailed corner check below:
+        if (t1Inside && t2Inside)
+            return !this.isTouching();
+        // Now get the references to the 4 curves involved in the intersection:
+        // - c1 & c2 are the curves on the first intersecting path, left and
+        //   right of the intersection.
+        // - c3 & c4 are the same for the second intersecting path.
+        // - If the intersection is in the middle of the curve (t*Inside), then
+        //   both values point to the same curve, and the curve-time is to be
+        //   handled accordingly further down.
+        var c2 = this.getCurve(),
+            c1 = t1 <= tMin ? c2.getPrevious() : c2,
+            c4 = inter.getCurve(),
+            c3 = t2 <= tMin ? c4.getPrevious() : c4;
+        // If t1 / t2 are at the end, then step to the next curve.
+        if (t1 >= tMax)
+            c2 = c2.getNext();
+        if (t2 >= tMax)
+            c4 = c4.getNext();
+        if (!c1 || !c2 || !c3 || !c4)
+            return false;
+
+        function isInRange(angle, min, max) {
+            return min < max
+                    ? angle > min && angle < max
+                    // min > max: the range wraps around -180 / 180 degrees
+                    : angle > min || angle < max;
+        }
+
+        // Calculate unambiguous angles for all 4 tangents at the intersection:
+        // - If the intersection is inside a curve (t1 / t2Inside), the tangent
+        //   at t1 / t2 is unambiguous, because the curve is continuous.
+        // - If the intersection is on a segment, step away at equal offsets on
+        //   each curve, to calculate unambiguous angles. The vector from the
+        //   intersection to this new location is used to determine the angle.
+        //   The offset is determined by taking 1/64th of the length of the
+        //   shortest of all involved curves.
+        // NOTE: VectorBoolean has code that slowly shifts these offsets inwards
+        // until the resulting tangents are not ambiguous. Do we need this too?
+        var lenghts = [];
+        if (!t1Inside)
+            lenghts.push(c1.getLength(), c2.getLength());
+        if (!t2Inside)
+            lenghts.push(c3.getLength(), c4.getLength());
+        var pt = this.getPoint(),
+            offset = Math.min.apply(Math, lenghts) / 64,
+            v2 = t1Inside ? c2.getTangentAtTime(t1)
+                    : c2.getPointAt(offset).subtract(pt),
+            v1 = t1Inside ? v2.negate()
+                    : c1.getPointAt(-offset).subtract(pt),
+            v4 = t2Inside ? c4.getTangentAtTime(t2)
+                    : c4.getPointAt(offset).subtract(pt),
+            v3 = t2Inside ? v4.negate()
+                    : c3.getPointAt(-offset).subtract(pt),
+            // NOTE: For shorter API calls we work with angles in degrees here:
+            a1 = v1.getAngle(),
+            a2 = v2.getAngle(),
+            a3 = v3.getAngle(),
+            a4 = v4.getAngle();
+        // Count how many times curve2 angles appear between the curve1 angles.
+        // If each pair of angles split the other two, then the edges cross.
+        // Use t1Inside to decide which angle pair to check against.
+        // If t1 is inside the curve, check against a3 & a4, othrwise a1 & a2.
+        return !!(t1Inside
+                ? (isInRange(a1, a3, a4) ^ isInRange(a2, a3, a4)) &&
+                  (isInRange(a1, a4, a3) ^ isInRange(a2, a4, a3))
+                : (isInRange(a3, a1, a2) ^ isInRange(a4, a1, a2)) &&
+                  (isInRange(a3, a2, a1) ^ isInRange(a4, a2, a1)));
+    },
+
+    /**
+     * Checks if the location is an intersection with another curve and is
+     * part of an overlap between the two involved paths.
+     *
+     * @return {Boolean} {@true if the location is an intersection that is
+     * part of an overlap between the two involved paths}
+     * @see #isCrossing()
+     * @see #isTouching()
+     */
+    hasOverlap: function() {
+        return !!this._overlap;
     }
-}, Base.each(['getTangent', 'getNormal', 'getCurvature'], function(name) {
+}, Base.each(Curve._evaluateMethods, function(name) {
     // Produce getters for #getTangent() / #getNormal() / #getCurvature()
+    // NOTE: (For easier searching): This loop produces:
+    // getPointAt, getTangentAt, getNormalAt, getWeightedTangentAt,
+    // getWeightedNormalAt, getCurvatureAt
     var get = name + 'At';
     this[name] = function() {
-        var parameter = this.getParameter(),
-            curve = this.getCurve();
-        return parameter != null && curve && curve[get](parameter, true);
+        var curve = this.getCurve(),
+            time = this.getTime();
+        return time != null && curve && curve[get](time, true);
     };
-}, {}));
+}, {
+    // Do not override the existing #getPoint():
+    preserve: true
+}),
+new function() { // Scope for statics
+
+    function insert(locations, loc, merge) {
+        // Insert-sort by path-id, curve, time so we can easily merge
+        // duplicates with calls to equals() after.
+        var length = locations.length,
+            l = 0,
+            r = length - 1;
+
+        function search(index, dir) {
+            // If we reach the beginning/end of the list, also compare with the
+            // location at the other end, as paths are circular lists.
+            // NOTE: When merging, the locations array will only contain
+            // locations on the same path, so it is fine that check for the end
+            // to address circularity. See PathItem#getIntersections()
+            for (var i = index + dir; i >= -1 && i <= length; i += dir) {
+                // Wrap the index around, to match the other ends:
+                var loc2 = locations[((i % length) + length) % length];
+                // Once we're outside the spot, we can stop searching.
+                if (!loc.getPoint().isClose(loc2.getPoint(),
+                        /*#=*/Numerical.GEOMETRIC_EPSILON))
+                    break;
+                if (loc.equals(loc2))
+                    return loc2;
+            }
+            return null;
+        }
+
+        while (l <= r) {
+            var m = (l + r) >>> 1,
+                loc2 = locations[m],
+                found;
+            // See if the two locations are actually the same, and merge if
+            // they are. If they aren't check the other neighbors with search()
+            if (merge && (found = loc.equals(loc2) ? loc2
+                    : (search(m, -1) || search(m, 1)))) {
+                // We're done, don't insert, merge with the found location
+                // instead, and carry over overlap:
+                if (loc._overlap) {
+                    found._overlap = found._intersection._overlap = true;
+                }
+                return found;
+            }
+        var path1 = loc.getPath(),
+            path2 = loc2.getPath(),
+            // NOTE: equals() takes the intersection location into account,
+            // while this calculation of diff doesn't!
+            diff = path1 === path2
+                //Sort by both index and time. The two values added
+                // together provides a convenient sorting index.
+                ? (loc.getIndex() + loc.getTime())
+                - (loc2.getIndex() + loc2.getTime())
+                // Sort by path id to group all locs on same path.
+                : path1._id - path2._id;
+            if (diff < 0) {
+                r = m - 1;
+            } else {
+                l = m + 1;
+            }
+        }
+        // We didn't merge with a preexisting location, insert it now.
+        locations.splice(l, 0, loc);
+        return loc;
+    }
+
+    return { statics: {
+        insert: insert,
+
+        expand: function(locations) {
+            // Create a copy since insert() keeps modifying the array and
+            // inserting at sorted indices.
+            var expanded = locations.slice();
+            for (var i = locations.length - 1; i >= 0; i--) {
+                insert(expanded, locations[i]._intersection, false);
+            }
+            return expanded;
+        }
+    }};
+});

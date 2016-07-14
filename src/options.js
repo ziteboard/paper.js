@@ -2,7 +2,7 @@
  * Paper.js - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
- * Copyright (c) 2011 - 2014, Juerg Lehni & Jonathan Puckey
+ * Copyright (c) 2011 - 2016, Juerg Lehni & Jonathan Puckey
  * http://scratchdisk.com/ & http://jonathanpuckey.com/
  *
  * Distributed under the MIT license. See LICENSE file for details.
@@ -12,24 +12,25 @@
 
 // Define __options for code preprocessing when building the library, as well as
 // browser based compile-time preprocessing when loading the separate source
-// files directly through load.js / prepro.js during development.
+// files directly through load.js / Prepro.js during development.
 
 // The paper.js version.
-// NOTE: Adjust value here before calling publish.sh, which then updates and
+// NOTE: Adjust value here before calling `gulp publish`, which then updates and
 // publishes the various JSON package files automatically.
-var version = '0.9.22';
+var version = '0.10.2';
+// If this file is loaded in the browser, we're in load.js mode.
+var load = typeof window === 'object';
 
 var __options = {
-    // If this file is loaded in the browser, we're in dev mode through load.js
-    version: typeof window === 'object' ? 'dev' : version,
-    environment: 'browser',
+    version: version + (load ? '-load' : ''),
+    load: load,
     parser: 'acorn',
-    legacy: true,
     svg: true,
-    fatlineClipping: true,
     booleanOperations: true,
     nativeContains: false,
-    paperScript: true,
-    palette: true,
-    debug: false
+    paperScript: true
 };
+
+// Export for use in Gulp.js
+if (typeof module !== 'undefined')
+    module.exports = __options;
