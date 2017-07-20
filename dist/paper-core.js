@@ -11382,7 +11382,7 @@ new function() {
 
 	var navigator = window.navigator,
 		mousedown, mousemove, mouseup;
-	if (navigator.pointerEnabled || navigator.msPointerEnabled) {
+	if (navigator.pointerEnabled || navigator.msPointerEnabled || window.PointerEvent || window.MSPointEvent) {
 		mousedown = 'pointerdown MSPointerDown';
 		mousemove = 'pointermove MSPointerMove';
 		mouseup = 'pointerup pointercancel MSPointerUp MSPointerCancel';
