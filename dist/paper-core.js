@@ -13096,11 +13096,18 @@ var Key = new function() {
 
 	function getKey(event) {
 		var key = event.key || event.keyIdentifier;
+		var s1 = event.key
+		var s2 = event.keyIdentifier
 		key = /^U\+/.test(key)
 				? String.fromCharCode(parseInt(key.substr(2), 16))
 				: /^Arrow[A-Z]/.test(key) ? key.substr(5)
 				: key === 'Unidentified' ? String.fromCharCode(event.keyCode)
 				: key;
+		if (key === undefined){
+			console.debug("paperjs bug:")
+			console.debug(s1)
+			console.debug(s2)
+		}
 		return keyLookup[key] ||
 				(key.length > 1 ? Base.hyphenate(key) : key.toLowerCase());
 	}
