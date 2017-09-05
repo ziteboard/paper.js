@@ -13104,9 +13104,7 @@ var Key = new function() {
 				: key === 'Unidentified' ? String.fromCharCode(event.keyCode)
 				: key;
 		if (key === undefined){
-			console.debug("paperjs bug:")
-			console.debug(s1)
-			console.debug(s2)
+			console.debug("paperjs bug (" + event.which + "):" + typeof s1 + " " + typeof s2)
 		}
 		return keyLookup[key] ||
 				(key.length > 1 ? Base.hyphenate(key) : key.toLowerCase());
