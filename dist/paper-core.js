@@ -13141,6 +13141,7 @@ var Key = new function() {
 	DomEvent.add(document, {
 		keydown: function(event) {
 			var keyRaw = event.key || event.keyIdentifier;
+      
 			if (keyRaw === undefined){
 				return
 			}			
