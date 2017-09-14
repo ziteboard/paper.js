@@ -13096,16 +13096,11 @@ var Key = new function() {
 
 	function getKey(event) {
 		var key = event.key || event.keyIdentifier;
-		var s1 = event.key
-		var s2 = event.keyIdentifier
 		key = /^U\+/.test(key)
 				? String.fromCharCode(parseInt(key.substr(2), 16))
 				: /^Arrow[A-Z]/.test(key) ? key.substr(5)
 				: key === 'Unidentified' ? String.fromCharCode(event.keyCode)
 				: key;
-		if (key === undefined){
-			console.debug("paperjs bug (" + event.which + "):" + typeof s1 + " " + typeof s2)
-		}
 		return keyLookup[key] ||
 				(key.length > 1 ? Base.hyphenate(key) : key.toLowerCase());
 	}
@@ -13145,6 +13140,10 @@ var Key = new function() {
 
 	DomEvent.add(document, {
 		keydown: function(event) {
+			var keyRaw = event.key || event.keyIdentifier;
+			if (keyRaw === undefined){
+				return
+			}			
 			var key = getKey(event),
 				agent = paper && paper.agent;
 			if (key.length > 1 || agent && (agent.chrome && (event.altKey
@@ -13158,6 +13157,10 @@ var Key = new function() {
 		},
 
 		keypress: function(event) {
+			var keyRaw = event.key || event.keyIdentifier;
+			if (keyRaw === undefined){
+				return
+			}			
 			if (downKey) {
 				var key = getKey(event),
 					code = event.charCode,
@@ -13172,6 +13175,10 @@ var Key = new function() {
 		},
 
 		keyup: function(event) {
+			var keyRaw = event.key || event.keyIdentifier;
+			if (keyRaw === undefined){
+				return
+			}			
 			var key = getKey(event);
 			if (key in charMap)
 				handleKey(false, key, charMap[key], event);
