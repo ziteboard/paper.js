@@ -12627,6 +12627,7 @@ new function() {
 			mousemove += ' mousemove';
 			mouseup += ' mouseup';
 		}
+		console.log(mousedown)
 	}
 
 	var viewEvents = {},
