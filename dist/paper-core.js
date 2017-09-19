@@ -12627,8 +12627,9 @@ new function() {
 			mousemove += ' mousemove';
 			mouseup += ' mouseup';
 		}
-		console.log(mousedown)
 	}
+	console.log(mousedown)
+	
 
 	var viewEvents = {},
 		docEvents = {
