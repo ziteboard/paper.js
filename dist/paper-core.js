@@ -12621,7 +12621,7 @@ new function() {
 		mousedown = 'touchstart';
 		mousemove = 'touchmove';
 		mouseup = 'touchend touchcancel';
-		if (!('ontouchstart' in window && navigator.userAgent.match(
+		if (!(1 === 2 && 'ontouchstart' in window && navigator.userAgent.match(
 				/mobile|tablet|ip(ad|hone|od)|android|silk/i))) {
 			mousedown += ' mousedown';
 			mousemove += ' mousemove';
