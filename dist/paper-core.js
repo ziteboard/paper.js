@@ -12628,8 +12628,8 @@ new function() {
 			mouseup += ' mouseup';
 		}
 	}
-	console.log(mousedown)
-	
+	alert(mousedown)
+
 
 	var viewEvents = {},
 		docEvents = {
