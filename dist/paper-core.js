@@ -3474,8 +3474,6 @@ new function() {
 
 	setMatrix: function() {
 		var matrix = this._matrix;
-		console.log(matrix)
-		console.log(matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty)				
 		matrix.initialize.apply(matrix, arguments);
 	},
 
@@ -12545,9 +12543,6 @@ var View = Base.extend(Emitter, {
 
 	setMatrix: function() {
 		var matrix = this._matrix;
-		console.log('ketto')
-		console.log(matrix)
-		console.log(matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty)				
 		matrix.initialize.apply(matrix, arguments);
 	},
 
