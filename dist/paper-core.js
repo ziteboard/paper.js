@@ -12652,6 +12652,7 @@ new function() {
 		};
 
 	viewEvents[mousedown] = function(event) {
+		console.log(101)
 		var view = View._focused = getView(event);
 		if (!dragging) {
 			dragging = true;
@@ -12684,6 +12685,7 @@ new function() {
 	};
 
 	docEvents[mousedown] = function() {
+		console.log(102)
 		mouseDown = true;
 	};
 
