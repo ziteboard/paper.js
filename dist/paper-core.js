@@ -12616,7 +12616,11 @@ new function() {
 	if (navigator.pointerEnabled || navigator.msPointerEnabled || window.PointerEvent || window.MSPointEvent) {
 		mousedown = 'pointerdown MSPointerDown';
 		mousemove = 'pointermove MSPointerMove';
-		mouseup = 'pointerup pointercancel MSPointerUp MSPointerCancel';
+		mouseup   = 'pointerup pointercancel MSPointerUp MSPointerCancel';
+
+		mousedown += ' mousedown';
+		mousemove += ' mousemove';
+		mouseup   += ' mouseup';
 	} else {
 		mousedown = 'touchstart';
 		mousemove = 'touchmove';
@@ -12628,7 +12632,7 @@ new function() {
 			mouseup += ' mouseup';
 		}
 	}
-	console.debug(mouseup)
+	console.debug(mousedown)
 
 
 	var viewEvents = {},
@@ -12652,7 +12656,6 @@ new function() {
 		};
 
 	viewEvents[mousedown] = function(event) {
-		console.log(101)
 		var view = View._focused = getView(event);
 		if (!dragging) {
 			dragging = true;
@@ -12685,7 +12688,6 @@ new function() {
 	};
 
 	docEvents[mousedown] = function() {
-		console.log(102)
 		mouseDown = true;
 	};
 
