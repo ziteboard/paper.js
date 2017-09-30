@@ -12632,7 +12632,6 @@ new function() {
 			mouseup += ' mouseup';
 		}
 	}
-	console.debug(mousedown)
 
 
 	var viewEvents = {},
