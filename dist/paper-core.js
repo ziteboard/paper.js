@@ -29,7 +29,7 @@
  * created by Marijn Haverbeke and released under an MIT license.
  *
  */
-console.log('Paper 103.01')
+console.log('Paper 2018-06-11')
 var paper = function(self, undefined) {
 
 self = self || require('./node/self.js');
@@ -12624,25 +12624,17 @@ new function() {
 
 		mousedown += ' touchstart';
 		mousemove += ' touchmove';
-		mouseup   += ' touchend touchcancel';				
-	} else if ('Ez az eredeti' === 'teszre kirakom') {
-		mousedown = 'pointerdown MSPointerDown';
-		mousemove = 'pointermove MSPointerMove';
-		mouseup   = 'pointerup pointercancel MSPointerUp MSPointerCancel';
-
+		mouseup   += ' touchend touchcancel';
+	} else {
+		console.log('Paper: No pointer.')
+		
+		mousedown = 'touchstart';
+		mousemove = 'touchmove';
+		mouseup   = 'touchend touchcancel';
+		
 		mousedown += ' mousedown';
 		mousemove += ' mousemove';
 		mouseup   += ' mouseup';
-	} else {
-		mousedown = 'touchstart';
-		mousemove = 'touchmove';
-		mouseup = 'touchend touchcancel';
-		if (!(1 === 2 && 'ontouchstart' in window && navigator.userAgent.match(
-				/mobile|tablet|ip(ad|hone|od)|android|silk/i))) {
-			mousedown += ' mousedown';
-			mousemove += ' mousemove';
-			mouseup += ' mouseup';
-		}
 	}
 
 
