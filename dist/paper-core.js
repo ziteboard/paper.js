@@ -12616,7 +12616,7 @@ new function() {
 	if (navigator.pointerEnabled || navigator.msPointerEnabled || window.PointerEvent || window.MSPointEvent) {
 		mousedown = 'pointerdown MSPointerDown';
 		mousemove = 'pointermove MSPointerMove';
-		mouseup   = 'pointerup pointercancel MSPointerUp MSPointerCancel';
+		mouseup   = 'pointerup MSPointerUp MSPointerCancel';
 
 		mousedown += ' mousedown';
 		mousemove += ' mousemove';
