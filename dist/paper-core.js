@@ -29,7 +29,7 @@
  * created by Marijn Haverbeke and released under an MIT license.
  *
  */
-console.log('Paper 2018-06-11')
+console.log('Paper 2018-06-15')
 var paper = function(self, undefined) {
 
 self = self || require('./node/self.js');
@@ -12622,8 +12622,8 @@ new function() {
 		mousemove += ' mousemove';
 		mouseup   += ' mouseup';
 
-		mousedown += ' touchstart';
-		mousemove += ' touchmove';
+		//mousedown += ' touchstart';
+		//mousemove += ' touchmove';
 		mouseup   += ' touchend touchcancel';
 	} else {
 		console.log('Paper: No pointer.')
