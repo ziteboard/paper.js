@@ -12675,7 +12675,7 @@ new function() {
 	};
 
 	docEvents[mousemove] = function(event) {
-		console.log(event.type)
+		console.log(event.type + ' ' + mouseDown)
 		var view = View._focused;
 		if (!mouseDown) {
 			var target = getView(event);
@@ -12821,6 +12821,7 @@ new function() {
 				type = 'mousedrag';
 			if (!point)
 				point = this.getEventPoint(event);
+			console.log(type)
 
 			var inView = this.getBounds().contains(point),
 				hit = hitItems && inView && view._project.hitTest(point, {
