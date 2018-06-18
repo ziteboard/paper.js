@@ -29,7 +29,7 @@
  * created by Marijn Haverbeke and released under an MIT license.
  *
  */
-console.log('Paper 2018-06-15')
+console.log('Paper 2018-06-18')
 var paper = function(self, undefined) {
 
 self = self || require('./node/self.js');
@@ -12616,25 +12616,33 @@ new function() {
 	if (navigator.pointerEnabled || navigator.msPointerEnabled || window.PointerEvent || window.MSPointEvent) {
 		mousedown = 'pointerdown MSPointerDown';
 		mousemove = 'pointermove MSPointerMove';
-		mouseup   = 'pointerup MSPointerUp MSPointerCancel';
+		mouseup   = 'pointerup pointercancel MSPointerUp MSPointerCancel';
 
 		mousedown += ' mousedown';
 		mousemove += ' mousemove';
 		mouseup   += ' mouseup';
 
-		//mousedown += ' touchstart';
-		//mousemove += ' touchmove';
-		mouseup   += ' touchend touchcancel';
+		mousedown += ' touchstart';
+		mousemove += ' touchmove';
+		mouseup   += ' touchend touchcancel';				
+	} else if ('Ez az eredeti' === 'teszre kirakom') {
+		mousedown = 'pointerdown MSPointerDown';
+		mousemove = 'pointermove MSPointerMove';
+		mouseup   = 'pointerup pointercancel MSPointerUp MSPointerCancel';
+
+		mousedown += ' mousedown';
+		mousemove += ' mousemove';
+		mouseup   += ' mouseup';
 	} else {
-		console.log('Paper: No pointer.')
-		
 		mousedown = 'touchstart';
 		mousemove = 'touchmove';
-		mouseup   = 'touchend touchcancel';
-		
-		mousedown += ' mousedown';
-		mousemove += ' mousemove';
-		mouseup   += ' mouseup';
+		mouseup = 'touchend touchcancel';
+		if (!(1 === 2 && 'ontouchstart' in window && navigator.userAgent.match(
+				/mobile|tablet|ip(ad|hone|od)|android|silk/i))) {
+			mousedown += ' mousedown';
+			mousemove += ' mousemove';
+			mouseup += ' mouseup';
+		}
 	}
 
 
@@ -12667,6 +12675,7 @@ new function() {
 	};
 
 	docEvents[mousemove] = function(event) {
+		console.log(event.type)
 		var view = View._focused;
 		if (!mouseDown) {
 			var target = getView(event);
@@ -12695,6 +12704,7 @@ new function() {
 	};
 
 	docEvents[mouseup] = function(event) {
+		console.log('## ' + event.type)
 		var view = View._focused;
 		if (view && dragging)
 			view._handleMouseEvent('mouseup', event);
@@ -12875,9 +12885,9 @@ new function() {
 				called = tool._handleMouseEvent(type, event, point, mouse)
 					|| called;
 			}
-
-			if (called && !mouse.move || mouse.down && responds('mouseup'))
+			if (called && !mouse.move || mouse.down && responds('mouseup')){
 				event.preventDefault();
+			}
 		},
 
 		_handleKeyEvent: function(type, event, key, character) {
