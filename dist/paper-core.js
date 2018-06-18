@@ -12887,8 +12887,8 @@ new function() {
 					|| called;
 			}
 			if (called && !mouse.move || mouse.down && responds('mouseup')){
-				console.log('prevent')
 				event.preventDefault();
+				event.stopPropagation();
 			}
 		},
 
