@@ -12821,7 +12821,7 @@ new function() {
 				type = 'mousedrag';
 			if (!point)
 				point = this.getEventPoint(event);
-			console.log(type)
+
 
 			var inView = this.getBounds().contains(point),
 				hit = hitItems && inView && view._project.hitTest(point, {
@@ -12887,6 +12887,7 @@ new function() {
 					|| called;
 			}
 			if (called && !mouse.move || mouse.down && responds('mouseup')){
+				console.log('prevent')
 				event.preventDefault();
 			}
 		},
