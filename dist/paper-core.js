@@ -29,7 +29,7 @@
  * created by Marijn Haverbeke and released under an MIT license.
  *
  */
-console.log('Paper 2018-06-18')
+console.log('Paper 2018-06-19')
 var paper = function(self, undefined) {
 
 self = self || require('./node/self.js');
