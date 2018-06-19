@@ -12622,8 +12622,8 @@ new function() {
 		mousemove += ' mousemove';
 		mouseup   += ' mouseup';
 
-		mousedown += ' touchstart';
-		mousemove += ' touchmove';
+		//mousedown += ' touchstart';
+		//mousemove += ' touchmove';
 		mouseup   += ' touchend touchcancel';				
 	} else if ('Ez az eredeti' === 'teszre kirakom') {
 		mousedown = 'pointerdown MSPointerDown';
@@ -12675,7 +12675,6 @@ new function() {
 	};
 
 	docEvents[mousemove] = function(event) {
-		console.log(event.type + ' ' + mouseDown)
 		var view = View._focused;
 		if (!mouseDown) {
 			var target = getView(event);
@@ -12704,7 +12703,6 @@ new function() {
 	};
 
 	docEvents[mouseup] = function(event) {
-		console.log('## ' + event.type)
 		var view = View._focused;
 		if (view && dragging)
 			view._handleMouseEvent('mouseup', event);
@@ -12888,7 +12886,6 @@ new function() {
 			}
 			if (called && !mouse.move || mouse.down && responds('mouseup')){
 				event.preventDefault();
-				event.stopPropagation();
 			}
 		},
 
