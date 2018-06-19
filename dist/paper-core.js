@@ -12616,10 +12616,10 @@ new function() {
 	if (navigator.pointerEnabled || navigator.msPointerEnabled || window.PointerEvent || window.MSPointEvent) {
 		mousedown = 'pointerdown MSPointerDown';
 		mousemove = 'pointermove MSPointerMove';
-		mouseup   = 'pointerup pointercancel MSPointerUp MSPointerCancel';
+		mouseup   = 'pointercancel MSPointerUp MSPointerCancel';
 
-		mousedown += ' mousedown';
-		mousemove += ' mousemove';
+		//mousedown += ' mousedown';
+		//mousemove += ' mousemove';
 		mouseup   += ' mouseup';
 
 		//mousedown += ' touchstart';
@@ -12804,6 +12804,12 @@ new function() {
 		_viewEvents: viewEvents,
 
 		_handleMouseEvent: function(type, event, point) {
+			//console.log(event.type)
+			var igen = false
+			if (type === 'mouseup') {
+				var igen = true
+				//console.log(event.type + ' | paper')
+			}
 			var itemEvents = this._itemEvents,
 				hitItems = itemEvents.native[type],
 				nativeMove = type === 'mousemove',
@@ -12885,7 +12891,8 @@ new function() {
 					|| called;
 			}
 			if (called && !mouse.move || mouse.down && responds('mouseup')){
-				event.preventDefault();
+				true
+				//event.preventDefault();
 			}
 		},
 
