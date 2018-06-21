@@ -29,7 +29,7 @@
  * created by Marijn Haverbeke and released under an MIT license.
  *
  */
-console.log('Paper 2018-06-21')
+console.log('Paper 2018-06-21:21:01')
 var paper = function(self, undefined) {
 
 self = self || require('./node/self.js');
@@ -12613,6 +12613,15 @@ new function() {
 
 	var navigator = window.navigator,
 		mousedown, mousemove, mouseup;
+  
+  //skali
+  /*
+  var patchNeeded = false;
+  useragent = navigator.userAgent.toLowerCase();
+  if (useragent.indexOf('windows') >= 0 && useragent.indexOf('chrome') >= 0 && useragent.indexOf('firefox') === -1 && useragent.indexOf('edge') === -1 && useragent.indexOf('trident') === -1) {
+      patchNeeded = true;
+  }
+  */   
 	if (window.PointerEvent || navigator.pointerEnabled || navigator.msPointerEnabled || window.MSPointEvent) {
 		mousedown = 'pointerdown MSPointerDown';
 		mousemove = 'pointermove MSPointerMove';
@@ -12620,7 +12629,7 @@ new function() {
 
 		//mousedown += ' mousedown';
 		//mousemove += ' mousemove';
-		mouseup   += ' mouseup';
+		//mouseup   += ' mouseup';
 
 		//mousedown += ' touchstart';
 		//mousemove += ' touchmove';
@@ -12891,7 +12900,12 @@ new function() {
 					|| called;
 			}
 			if (called && !mouse.move || mouse.down && responds('mouseup')){
-				true
+				//skali
+				/*
+				if (patchNeeded === false) {
+					event.preventDefault();
+				}
+				*/
 				//event.preventDefault();
 			}
 		},
