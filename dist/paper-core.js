@@ -12625,7 +12625,7 @@ new function() {
 
 		//mousedown += ' touchstart';
 		//mousemove += ' touchmove';
-		mouseup   += ' touchend touchcancel';				
+		//mouseup   += ' touchend touchcancel';				
 	} else if ('Ez az eredeti' === 'teszre kirakom') {
 		mousedown = 'pointerdown MSPointerDown';
 		mousemove = 'pointermove MSPointerMove';
@@ -12893,7 +12893,7 @@ new function() {
 			}
 			if (called && !mouse.move || mouse.down && responds('mouseup')){
 				true
-				event.preventDefault();
+				//event.preventDefault();
 			}
 		},
 
