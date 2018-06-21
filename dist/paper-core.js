@@ -29,7 +29,7 @@
  * created by Marijn Haverbeke and released under an MIT license.
  *
  */
-console.log('Paper 2018-06-20')
+console.log('Paper 2018-06-21')
 var paper = function(self, undefined) {
 
 self = self || require('./node/self.js');
@@ -12614,6 +12614,7 @@ new function() {
 	var navigator = window.navigator,
 		mousedown, mousemove, mouseup;
 	if (window.PointerEvent || navigator.pointerEnabled || navigator.msPointerEnabled || window.MSPointEvent) {
+		console.log('PointerEvent van.')
 		mousedown = 'pointerdown MSPointerDown';
 		mousemove = 'pointermove MSPointerMove';
 		mouseup   = 'pointerup pointercancel MSPointerUp MSPointerCancel';
@@ -12892,7 +12893,7 @@ new function() {
 			}
 			if (called && !mouse.move || mouse.down && responds('mouseup')){
 				true
-				//event.preventDefault();
+				event.preventDefault();
 			}
 		},
 
