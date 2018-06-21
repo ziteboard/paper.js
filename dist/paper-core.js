@@ -12614,7 +12614,6 @@ new function() {
 	var navigator = window.navigator,
 		mousedown, mousemove, mouseup;
 	if (window.PointerEvent || navigator.pointerEnabled || navigator.msPointerEnabled || window.MSPointEvent) {
-		console.log('PointerEvent van.')
 		mousedown = 'pointerdown MSPointerDown';
 		mousemove = 'pointermove MSPointerMove';
 		mouseup   = 'pointerup pointercancel MSPointerUp MSPointerCancel';
@@ -12625,7 +12624,7 @@ new function() {
 
 		//mousedown += ' touchstart';
 		//mousemove += ' touchmove';
-		//mouseup   += ' touchend touchcancel';				
+		mouseup   += ' touchend touchcancel';				
 	} else if ('Ez az eredeti' === 'teszre kirakom') {
 		mousedown = 'pointerdown MSPointerDown';
 		mousemove = 'pointermove MSPointerMove';
