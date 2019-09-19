@@ -29,7 +29,7 @@
  * created by Marijn Haverbeke and released under an MIT license.
  *
  */
-console.log('Paper 2019-09-19')
+
 var paper = function(self, undefined) {
 
 self = self || require('./node/self.js');
@@ -529,20 +529,7 @@ statics: {
 	},
 
 	exportJSON: function(obj, options) {
-		var _ref, _b;
-		if ((typeof obj !== "undefined" && obj !== null ? (_ref = obj.data) != null ? _ref.timeID : void 0 : void 0) != null) {
-		  _b = true
-			timeID = obj.data.timeID + 0
-		} else {
-			_b = false
-		}            		
 		var json = Base.serialize(obj, options);
-		if(_b){
-			if(json[1].data.timeID !== timeID){
-				//console.log('exportJSON bug detected and fixed.')
-			}
-			json[1].data.timeID = timeID
-		} 		
 		return options && options.asString == false
 				? json
 				: JSON.stringify(json);
@@ -3803,10 +3790,6 @@ new function() {
 			tolerancePadding = options._tolerancePadding = new Size(
 					Path._getStrokePadding(tolerance,
 						matrix._shiftless().invert()));
-		scale = viewMatrix.scaling.x / matrix.scaling.x
-		tolerancePadding.width  = options._tolerancePadding.width  = tolerancePadding.width  / scale
-		tolerancePadding.height = options._tolerancePadding.height = tolerancePadding.height / scale
-		
 		point = matrix._inverseTransform(point);
 		if (!point || !this._children &&
 			!this.getBounds({ internal: true, stroke: true, handle: true })
@@ -12828,47 +12811,21 @@ new function() {
 
 	var navigator = window.navigator,
 		mousedown, mousemove, mouseup;
-  
-  //skali
-  /*
-  var patchNeeded = false;
-  useragent = navigator.userAgent.toLowerCase();
-  if (useragent.indexOf('windows') >= 0 && useragent.indexOf('chrome') >= 0 && useragent.indexOf('firefox') === -1 && useragent.indexOf('edge') === -1 && useragent.indexOf('trident') === -1) {
-      patchNeeded = true;
-  }
-  */   
-	if (window.PointerEvent || navigator.pointerEnabled || navigator.msPointerEnabled || window.MSPointEvent) {
+	if (navigator.pointerEnabled || navigator.msPointerEnabled) {
 		mousedown = 'pointerdown MSPointerDown';
 		mousemove = 'pointermove MSPointerMove';
-		mouseup   = 'pointerup pointercancel MSPointerUp MSPointerCancel';
-
-		//mousedown += ' mousedown';
-		//mousemove += ' mousemove';
-		//mouseup   += ' mouseup';
-
-		//mousedown += ' touchstart';
-		//mousemove += ' touchmove';
-		mouseup   += ' touchend touchcancel';				
-	} else if ('Ez az eredeti' === 'teszre kirakom') {
-		mousedown = 'pointerdown MSPointerDown';
-		mousemove = 'pointermove MSPointerMove';
-		mouseup   = 'pointerup pointercancel MSPointerUp MSPointerCancel';
-
-		mousedown += ' mousedown';
-		mousemove += ' mousemove';
-		mouseup   += ' mouseup';
+		mouseup = 'pointerup pointercancel MSPointerUp MSPointerCancel';
 	} else {
 		mousedown = 'touchstart';
 		mousemove = 'touchmove';
 		mouseup = 'touchend touchcancel';
-		if (!(1 === 2 && 'ontouchstart' in window && navigator.userAgent.match(
+		if (!('ontouchstart' in window && navigator.userAgent.match(
 				/mobile|tablet|ip(ad|hone|od)|android|silk/i))) {
 			mousedown += ' mousedown';
 			mousemove += ' mousemove';
 			mouseup += ' mouseup';
 		}
 	}
-
 
 	var viewEvents = {},
 		docEvents = {
@@ -13028,12 +12985,6 @@ new function() {
 		_viewEvents: viewEvents,
 
 		_handleMouseEvent: function(type, event, point) {
-			//console.log(event.type)
-			var igen = false
-			if (type === 'mouseup') {
-				var igen = true
-				//console.log(event.type + ' | paper')
-			}			
 			var itemEvents = this._itemEvents,
 				hitItems = itemEvents.native[type],
 				nativeMove = type === 'mousemove',
@@ -13114,9 +13065,11 @@ new function() {
 					|| called;
 			}
 
-			if (event.cancelable !== false && (called && !mouse.move || mouse.down && responds('mouseup'))) {
-				//skali
-				//event.preventDefault();
+			if (
+				event.cancelable !== false
+				&& (called && !mouse.move || mouse.down && responds('mouseup'))
+			) {
+				event.preventDefault();
 			}
 		},
 
@@ -13397,10 +13350,6 @@ var Key = new function() {
 
 	DomEvent.add(document, {
 		keydown: function(event) {
-			var keyRaw = event.key || event.keyIdentifier;      
-			if (keyRaw === undefined){
-				return
-			}						
 			var key = getKey(event),
 				agent = paper && paper.agent;
 			if (key.length > 1 || agent && (agent.chrome && (event.altKey
@@ -13414,10 +13363,6 @@ var Key = new function() {
 		},
 
 		keypress: function(event) {
-			var keyRaw = event.key || event.keyIdentifier;      
-			if (keyRaw === undefined){
-				return
-			}						
 			if (downKey) {
 				var key = getKey(event),
 					code = event.charCode,
@@ -13432,10 +13377,6 @@ var Key = new function() {
 		},
 
 		keyup: function(event) {
-			var keyRaw = event.key || event.keyIdentifier;      
-			if (keyRaw === undefined){
-				return
-			}						
 			var key = getKey(event);
 			if (key in charMap)
 				handleKey(false, key, charMap[key], event);
@@ -14600,28 +14541,9 @@ new function() {
 			var get = entry.get,
 				type = entry.type,
 				value = item[get]();
-			var found = false
-			var v
-			if(!parent){
-				found = true
-			} else {
-
-				if(parent.className == 'Layer'){
-
-					v = Base.parentValues[get]
-
-				} else {
-					v = parent[get]()
-
-				}
-
-				if(!Base.equals(v, value)){
-					found = true
-				}
-			}								
 			if (entry.exportFilter
 					? entry.exportFilter(item, value)
-					: found) {
+					: !parent || !Base.equals(parent[get](), value)) {
 				if (type === 'color' && value != null) {
 					var alpha = value.getAlpha();
 					if (alpha < 1)
@@ -14629,8 +14551,7 @@ new function() {
 				}
 				if (type === 'style') {
 					style.push(entry.attribute + ': ' + value);
-				} else if ((typeof value !== "undefined" && value !== null)) {
-					//skali 2019-09-19
+				} else {
 					attrs[entry.attribute] = value == null ? 'none'
 							: type === 'color' ? value.gradient
 								? exportGradient(value, item)
@@ -14694,16 +14615,6 @@ new function() {
 	}
 
 	function exportSVG(item, options, isRoot) {
-		if(item.className == 'Layer'){
-			var parentValues = {}
-			Base.each(SvgStyles, function(entry) {
-				var get = entry.get
-				var v = item[get]()
-				parentValues[get] = v
-			})
-			//console.log(parentValues)
-			Base.parentValues = parentValues
-		}				
 		var exporter = exporters[item._class],
 			node = exporter && exporter(item, options);
 		if (node) {
